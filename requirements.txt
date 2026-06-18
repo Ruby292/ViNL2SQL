@@ -1,0 +1,15 @@
+# Zero-shot Text-to-SQL Pipeline Dependencies
+
+# Core inference
+vllm>=0.4.0
+torch>=2.1.0
+transformers>=4.40.0
+accelerate>=0.27.0
+
+# Utilities
+tqdm
+nltk
+
+# Optional: for better performance
+# ninja  # for faster compilation
+# flash-attn>=2.0.0  # for flash attention support
