@@ -2,7 +2,7 @@
 Zero-shot Text-to-SQL pipeline orchestrator.
 
 Usage:
-    python -m text_to_sql.run_zero_shot --dataset vispider --split dev --model Qwen/Qwen2.5-Coder-7B-Instruct
+    python -m zero_shot.run_zero_shot --dataset vispider --split dev --model Qwen/Qwen2.5-Coder-7B-Instruct
 """
 
 import argparse
@@ -17,8 +17,8 @@ from tqdm import tqdm
 if TYPE_CHECKING:
     from vllm import LLM, SamplingParams
 
-from text_to_sql.prompts import build_prompt, extract_sql
-from text_to_sql.spider_eval import run_evaluation, save_results
+from zero_shot.prompts import build_prompt, extract_sql
+from zero_shot.spider_eval import run_evaluation, save_results
 
 
 # Path configuration
@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).parent.parent
 DATA_ROOT = BASE_DIR / "data"
 SPIDER_DB = DATA_ROOT / "spider_db"
 VISPIDER_DIR = DATA_ROOT / "vispider_data"
-RESULTS_DIR = BASE_DIR / "text_to_sql" / "results"
+RESULTS_DIR = BASE_DIR / "zero_shot" / "results"
 TABLE_FILE = VISPIDER_DIR / "tables.json"
 
 

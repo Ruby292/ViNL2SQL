@@ -27,9 +27,9 @@ build/
 # *.safetensors
 
 # Results and outputs
-text_to_sql/results/*.txt
-text_to_sql/results/*.json
-!text_to_sql/results/.gitkeep
+zero_shot/results/*.txt
+zero_shot/results/*.json
+!zero_shot/results/.gitkeep
 
 # Dataset files (too large for git)
 data/vispider_data/*.json

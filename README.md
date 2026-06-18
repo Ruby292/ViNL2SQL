@@ -33,7 +33,7 @@ Project này implement pipeline đầy đủ cho zero-shot Text-to-SQL evaluatio
 
 ```
 zero_shot/
-├── text_to_sql/                    # Main package
+├── zero_shot/                      # Main package
 │   ├── __init__.py
 │   ├── prompts.py                  # Schema formatting + prompt building
 │   ├── spider_eval.py              # Spider evaluation wrapper
@@ -362,7 +362,7 @@ huggingface-cli download Qwen/Qwen2.5-Coder-7B-Instruct --local-dir ./models/qwe
 Chạy inference và evaluation end-to-end:
 
 ```bash
-python -m text_to_sql.run_zero_shot \
+python -m zero_shot.run_zero_shot \
   --dataset vispider \
   --split dev \
   --model Qwen/Qwen2.5-Coder-7B-Instruct \
@@ -382,7 +382,7 @@ python -m text_to_sql.run_zero_shot \
 #### Test nhanh với 10 examples:
 
 ```bash
-python -m text_to_sql.run_zero_shot \
+python -m zero_shot.run_zero_shot \
   --dataset vispider \
   --split dev \
   --model Qwen/Qwen2.5-Coder-7B-Instruct \
@@ -394,10 +394,10 @@ python -m text_to_sql.run_zero_shot \
 Nếu đã có predictions từ run trước:
 
 ```bash
-python -m text_to_sql.run_zero_shot \
+python -m zero_shot.run_zero_shot \
   --dataset vispider \
   --split dev \
-  --predictions-input text_to_sql/results/vispider_dev_predictions.txt
+  --predictions-input zero_shot/results/vispider_dev_predictions.txt
 ```
 
 **Use case**: 
@@ -408,7 +408,7 @@ python -m text_to_sql.run_zero_shot \
 ### Mode 3: Chỉ generate predictions (không evaluate)
 
 ```bash
-python -m text_to_sql.run_zero_shot \
+python -m zero_shot.run_zero_shot \
   --dataset vispider \
   --split dev \
   --model Qwen/Qwen2.5-Coder-7B-Instruct \
@@ -574,7 +574,7 @@ UnicodeEncodeError: 'charmap' codec can't encode character
 ```bash
 # Set environment variable before running
 set PYTHONIOENCODING=utf-8
-python -m text_to_sql.run_zero_shot ...
+python -m zero_shot.run_zero_shot ...
 ```
 
 ## 📝 Citation
