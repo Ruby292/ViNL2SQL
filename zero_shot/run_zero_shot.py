@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from vllm import LLM, SamplingParams
 
 from zero_shot.prompts import build_prompt, extract_sql
-from zero_shot.spider_eval import run_evaluation, save_results
+from shared.spider_eval import run_evaluation, save_results
 
 
 # Path configuration
