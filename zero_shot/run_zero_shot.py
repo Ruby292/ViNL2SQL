@@ -87,6 +87,20 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--predictions-output",
+        type=str,
+        default=None,
+        help="Path to save predictions.txt (default: results/{dataset}_{split}_predictions.txt)"
+    )
+
+    parser.add_argument(
+        "--gold-output",
+        type=str,
+        default=None,
+        help="Path to save gold.txt (default: results/{dataset}_{split}_gold.txt)"
+    )
+
+    parser.add_argument(
         "--max-model-len",
         type=int,
         default=4096,
@@ -229,30 +243,21 @@ def run_inference_batch(
     sampling_params,
     examples: List[Dict],
     tables: Dict
-) -> List[str]:
+) -> Tuple[List[str], List[str]]:
     """
     Run batch inference on all examples.
 
-    Args:
-        llm: vLLM model instance
-        sampling_params: Sampling parameters
-        examples: List of example dicts
-        tables: Tables schema dict
-
     Returns:
-        List of predicted SQL strings
+        Tuple of (extracted SQL strings, raw model outputs before extract_sql)
     """
     print(f"Building prompts for {len(examples)} examples...")
 
-    # Get tokenizer for chat template
     tokenizer = llm.get_tokenizer()
 
-    # Build all prompts with chat template
     prompts = []
     for example in tqdm(examples, desc="Building prompts"):
         user_prompt = build_prompt(example['question_vi'], example['db_id'], tables)
 
-        # Apply chat template
         messages = [
             {"role": "system", "content": "You are a helpful SQL expert."},
             {"role": "user", "content": user_prompt}
@@ -268,17 +273,16 @@ def run_inference_batch(
 
     print(f"Running batch inference...")
 
-    # Generate batch
     outputs = llm.generate(prompts, sampling_params)
 
-    # Extract SQL from each output
     predictions = []
+    raw_outputs = []
     for output in outputs:
         raw_text = output.outputs[0].text
-        sql = extract_sql(raw_text)
-        predictions.append(sql)
+        predictions.append(" ".join(extract_sql(raw_text).split()))
+        raw_outputs.append(raw_text)
 
-    return predictions
+    return predictions, raw_outputs
 
 
 def save_predictions_txt(predictions: List[str], output_path: Path):
@@ -307,31 +311,30 @@ def build_detailed_predictions(
     examples: List[Dict],
     gold_data: List[Tuple[str, str]],
     predictions: List[str],
-    scores: Dict
+    scores: Dict,
+    raw_outputs: List[str] = None,
 ) -> List[Dict]:
     """
     Build detailed prediction list with per-example metrics.
 
     Args:
-        examples: List of example dicts
-        gold_data: List of (gold_sql, db_id) tuples
-        predictions: List of predicted SQL strings
-        scores: Evaluation scores dict
-
-    Returns:
-        List of detailed prediction dicts
+        raw_outputs: Optional raw model outputs (before extract_sql). One entry
+            per example. Skipped when loading predictions from a file.
     """
     detailed = []
 
     for idx, (example, (gold_sql, db_id), pred_sql) in enumerate(zip(examples, gold_data, predictions)):
-        detailed.append({
+        item = {
             "id": idx,
             "example_id": example.get('id', f'example-{idx}'),
             "db_id": db_id,
             "question": example.get('question_vi', example.get('question', '')),
             "gold_sql": gold_sql,
             "pred_sql": pred_sql,
-        })
+        }
+        if raw_outputs is not None and idx < len(raw_outputs):
+            item["raw_output"] = raw_outputs[idx]
+        detailed.append(item)
 
     return detailed
 
@@ -391,13 +394,15 @@ def main():
     print(f"Loaded {len(examples)} examples")
 
     # Prepare intermediate files
-    pred_txt_path = RESULTS_DIR / f"{args.dataset}_{args.split}_predictions.txt"
-    gold_txt_path = RESULTS_DIR / f"{args.dataset}_{args.split}_gold.txt"
+    pred_txt_path = Path(args.predictions_output) if args.predictions_output else RESULTS_DIR / f"{args.dataset}_{args.split}_predictions.txt"
+    gold_txt_path = Path(args.gold_output) if args.gold_output else RESULTS_DIR / f"{args.dataset}_{args.split}_gold.txt"
 
     # Save gold file for evaluation
     save_gold_txt(gold_data, gold_txt_path)
 
     # ── Phase 2: Inference (skip if predictions-input provided) ──
+    raw_outputs: List[str] = None
+
     if args.predictions_input:
         print(f"\n[Phase 2] Loading existing predictions from {args.predictions_input}...")
         predictions = load_predictions_txt(args.predictions_input)
@@ -424,7 +429,7 @@ def main():
             args.gpu_memory_utilization
         )
 
-        predictions = run_inference_batch(llm, sampling_params, examples, tables)
+        predictions, raw_outputs = run_inference_batch(llm, sampling_params, examples, tables)
 
         # Save predictions
         save_predictions_txt(predictions, pred_txt_path)
@@ -462,7 +467,9 @@ def main():
     # ── Phase 4: Save full results ──
     print("\n[Phase 4] Saving results...")
 
-    detailed_predictions = build_detailed_predictions(examples, gold_data, predictions, scores)
+    detailed_predictions = build_detailed_predictions(
+        examples, gold_data, predictions, scores, raw_outputs=raw_outputs,
+    )
 
     meta = {
         "model": args.model,

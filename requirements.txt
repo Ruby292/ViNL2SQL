@@ -6,6 +6,12 @@ torch>=2.1.0
 transformers>=4.40.0
 accelerate>=0.27.0
 
+# QLoRA fine-tuning stack
+peft>=0.12.0
+bitsandbytes>=0.43.0
+datasets>=2.20.0
+trl>=0.9.6
+
 # Utilities
 tqdm
 nltk
