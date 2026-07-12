@@ -18,27 +18,34 @@ build/
 *.swo
 *~
 
-# vLLM cache
+# vLLM / Hugging Face cache
 .cache/
+.cache/**
 
-# Model weights (optional - uncomment if storing models locally)
-# models/
-# *.bin
-# *.safetensors
+# Model weights and local model downloads
+models/
+models/**
+*.bin
+*.safetensors
+*.gguf
 
 # Results and outputs
-zero_shot/results/*.txt
-zero_shot/results/*.json
+zero_shot/results/**
+!zero_shot/results/
 !zero_shot/results/.gitkeep
 
-# Dataset files (too large for git)
-data/vispider_data/*.json
-data/vispider_data/*.sql
-data/spider_db/
-
-# Keep directory structure
+# Dataset files (download from Hugging Face, too large for git)
+data/vispider_data/**
+data/spider_db/**
+!data/vispider_data/
 !data/vispider_data/.gitkeep
+!data/spider_db/
 !data/spider_db/.gitkeep
+
+# Local scratch folders
+instructions/
+plan/
+notebook/
 
 # Logs
 *.log
