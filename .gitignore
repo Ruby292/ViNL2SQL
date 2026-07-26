@@ -33,6 +33,7 @@ models/**
 zero_shot/results/**
 !zero_shot/results/
 !zero_shot/results/.gitkeep
+augmentation/results/
 vast_results/
 
 # Dataset files (download from Hugging Face, too large for git)
