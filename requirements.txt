@@ -16,6 +16,10 @@ trl>=0.9.6
 tqdm
 nltk
 
+# Contextual augmentation (opt-in via --augment)
+underthesea>=6.8.0
+sentence-transformers>=3.0.0
+
 # Optional: for better performance
 # ninja  # for faster compilation
 # flash-attn>=2.0.0  # for flash attention support

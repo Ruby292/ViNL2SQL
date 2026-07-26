@@ -91,6 +91,32 @@ The query should be syntactically correct and answer the question."""
     return prompt
 
 
+def build_prompt_augmented(question: str, db_id: str, tables: Dict, hints: List[Dict]) -> str:
+    schema = format_schema(db_id, tables)
+    hints_section = ""
+    if hints:
+        hint_lines = [
+            f'  - "{hint["vi_noun"]}" -> {hint["schema_key"]}'
+            for hint in hints
+        ]
+        hints_section = (
+            "\nRelevant schema hints (Vietnamese -> SQL identifier):\n"
+            + "\n".join(hint_lines)
+            + "\n"
+        )
+
+    prompt = f"""You are an expert SQL developer. Given a database schema and a natural language question, generate a valid SQL query.
+
+{schema}
+{hints_section}
+Question: {question}
+
+Generate only the SQL query without any explanation.
+The query should be syntactically correct and answer the question."""
+
+    return prompt
+
+
 def extract_sql(text: str) -> str:
     """
     Extract SQL query from model output, removing markdown fences and explanations.

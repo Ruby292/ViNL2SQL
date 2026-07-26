@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Compare Qwen2.5-Coder sizes on ViSpider with two independent phases:
+# Compare Qwen2.5-Coder sizes on ViSpider with two independent phases per run:
 #   Phase 1: inference + EM only, saves predictions/gold/eval_em_only.json
 #   Phase 2: execution accuracy from saved artifacts, saves exec_details/eval_ex.json
+#
+# Runs baseline and (optionally) augmentation in parallel result trees:
+#   zero_shot/results/qwen_compare/<size>/
+#   zero_shot/results/qwen_compare_aug/<size>/
 
 set -euo pipefail
 
@@ -12,9 +16,12 @@ GPU_MEM_UTIL="${GPU_MEM_UTIL:-0.85}"
 LIMIT="${LIMIT:-}"
 SIZES="${SIZES:-0_5B 1_5B 3B 7B}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"
+AUGMENT_THRESHOLD="${AUGMENT_THRESHOLD:-0.8}"
+RUN_BASELINE="${RUN_BASELINE:-1}"
+RUN_AUG="${RUN_AUG:-1}"
 
-RESULTS_ROOT="zero_shot/results/qwen_compare"
-mkdir -p "$RESULTS_ROOT"
+BASELINE_ROOT="zero_shot/results/qwen_compare"
+AUG_ROOT="zero_shot/results/qwen_compare_aug"
 
 model_id_for() {
   case "$1" in
@@ -28,97 +35,170 @@ model_id_for() {
   esac
 }
 
-for TAG in $SIZES; do
-  MODEL_ID="$(model_id_for "$TAG")"
-  if [[ -z "$MODEL_ID" ]]; then
-    echo "!! Unknown size tag: $TAG (skipping)"
-    continue
-  fi
+run_model_variant() {
+  local variant_label="$1"
+  local variant_root="$2"
+  local augment_enabled="$3"
+  local tag="$4"
+  local model_id="$5"
 
-  OUTDIR="${RESULTS_ROOT}/${TAG}"
-  mkdir -p "$OUTDIR"
+  local outdir="${variant_root}/${tag}"
+  mkdir -p "$outdir"
 
-  PRED_PATH="${OUTDIR}/predictions.txt"
-  GOLD_PATH="${OUTDIR}/gold.txt"
-  EM_PATH="${OUTDIR}/eval_em_only.json"
-  EX_PATH="${OUTDIR}/eval_ex.json"
-  DETAILS_PATH="${OUTDIR}/exec_details.json"
-  LOG_PATH="${OUTDIR}/run.log"
+  local pred_path="${outdir}/predictions.txt"
+  local gold_path="${outdir}/gold.txt"
+  local em_path="${outdir}/eval_em_only.json"
+  local ex_path="${outdir}/eval_ex.json"
+  local details_path="${outdir}/exec_details.json"
+  local log_path="${outdir}/run.log"
 
   echo "============================================================"
-  echo " Running ${TAG}: ${MODEL_ID}"
-  echo " -> ${OUTDIR}"
+  echo " [${variant_label}] Running ${tag}: ${model_id}"
+  echo " -> ${outdir}"
   echo "============================================================"
 
-  INF_CMD=(python -m zero_shot.run_zero_shot
+  local inf_cmd=(python -m zero_shot.run_zero_shot
         --mode inference
         --dataset "$DATASET"
         --split "$SPLIT"
-        --model "$MODEL_ID"
-        --output "$EM_PATH"
-        --predictions-output "$PRED_PATH"
-        --gold-output "$GOLD_PATH"
+        --model "$model_id"
+        --output "$em_path"
+        --predictions-output "$pred_path"
+        --gold-output "$gold_path"
         --max-model-len "$MAX_MODEL_LEN"
         --gpu-memory-utilization "$GPU_MEM_UTIL")
 
   if [[ -n "$LIMIT" ]]; then
-    INF_CMD+=(--limit "$LIMIT")
+    inf_cmd+=(--limit "$LIMIT")
   fi
 
-  echo "[Phase 1] Inference + EM" | tee "$LOG_PATH"
-  if ! "${INF_CMD[@]}" 2>&1 | tee -a "$LOG_PATH"; then
-    echo "!! ${TAG} Phase 1 failed. See ${LOG_PATH}" | tee -a "$LOG_PATH"
-    continue
+  if [[ "$augment_enabled" == "1" ]]; then
+    inf_cmd+=(--augment --augment-threshold "$AUGMENT_THRESHOLD")
   fi
 
-  EX_CMD=(python -m zero_shot.run_zero_shot
+  echo "[Phase 1] Inference + EM (${variant_label})" | tee "$log_path"
+  if ! "${inf_cmd[@]}" 2>&1 | tee -a "$log_path"; then
+    echo "!! ${variant_label} ${tag} Phase 1 failed. See ${log_path}" | tee -a "$log_path"
+    return 0
+  fi
+
+  local ex_cmd=(python -m zero_shot.run_zero_shot
         --mode exec
         --dataset "$DATASET"
         --split "$SPLIT"
-        --model "$MODEL_ID"
-        --predictions-input "$PRED_PATH"
-        --gold-input "$GOLD_PATH"
-        --em-input "$EM_PATH"
-        --output "$EX_PATH"
-        --exec-details-output "$DETAILS_PATH"
+        --model "$model_id"
+        --predictions-input "$pred_path"
+        --gold-input "$gold_path"
+        --em-input "$em_path"
+        --output "$ex_path"
+        --exec-details-output "$details_path"
         --timeout-seconds "$TIMEOUT_SECONDS")
 
-  echo "" | tee -a "$LOG_PATH"
-  echo "[Phase 2] Execution accuracy" | tee -a "$LOG_PATH"
-  if ! "${EX_CMD[@]}" 2>&1 | tee -a "$LOG_PATH"; then
-    echo "!! ${TAG} Phase 2 failed. Phase 1 artifacts are preserved in ${OUTDIR}" | tee -a "$LOG_PATH"
+  echo "" | tee -a "$log_path"
+  echo "[Phase 2] Execution accuracy (${variant_label})" | tee -a "$log_path"
+  if ! "${ex_cmd[@]}" 2>&1 | tee -a "$log_path"; then
+    echo "!! ${variant_label} ${tag} Phase 2 failed. Phase 1 artifacts preserved in ${outdir}" | tee -a "$log_path"
   fi
-done
+}
 
-SUMMARY_LOG="${RESULTS_ROOT}/summary.log"
+if [[ "$RUN_BASELINE" == "1" ]]; then
+  mkdir -p "$BASELINE_ROOT"
+  for TAG in $SIZES; do
+    MODEL_ID="$(model_id_for "$TAG")"
+    if [[ -z "$MODEL_ID" ]]; then
+      echo "!! Unknown size tag: $TAG (skipping)"
+      continue
+    fi
+    run_model_variant "baseline" "$BASELINE_ROOT" "0" "$TAG" "$MODEL_ID"
+  done
+fi
+
+if [[ "$RUN_AUG" == "1" ]]; then
+  mkdir -p "$AUG_ROOT"
+  for TAG in $SIZES; do
+    MODEL_ID="$(model_id_for "$TAG")"
+    if [[ -z "$MODEL_ID" ]]; then
+      echo "!! Unknown size tag: $TAG (skipping)"
+      continue
+    fi
+    run_model_variant "augmented" "$AUG_ROOT" "1" "$TAG" "$MODEL_ID"
+  done
+fi
+
+SUMMARY_LOG="${BASELINE_ROOT}/summary.log"
+mkdir -p "$(dirname "$SUMMARY_LOG")"
 
 echo
 echo "============================================================"
 echo " Summary of EM/EX per model"
 echo "============================================================"
-python - <<'PY' | tee "$SUMMARY_LOG"
+AUGMENT_THRESHOLD="$AUGMENT_THRESHOLD" python - <<'PY' | tee "$SUMMARY_LOG"
 import json
+import os
 from pathlib import Path
-root = Path("zero_shot/results/qwen_compare")
-rows = []
-for sub in sorted(root.iterdir()):
-    if not sub.is_dir():
-        continue
-    ex_file = sub / "eval_ex.json"
-    em_file = sub / "eval_em_only.json"
-    if ex_file.exists():
-        data = json.load(open(ex_file, encoding="utf-8"))
-        s = data["summary"]
-        rows.append((sub.name, s.get("count", 0), s.get("exact_match"), s.get("execution_accuracy")))
-    elif em_file.exists():
-        data = json.load(open(em_file, encoding="utf-8"))
-        s = data["summary"]
-        rows.append((sub.name, s.get("count", 0), s.get("exact_match"), None))
+
+
+def collect(root: Path):
+    rows = {}
+    if not root.exists():
+        return rows
+    for sub in sorted(root.iterdir()):
+        if not sub.is_dir():
+            continue
+        ex_file = sub / "eval_ex.json"
+        em_file = sub / "eval_em_only.json"
+        if ex_file.exists():
+            data = json.loads(ex_file.read_text(encoding="utf-8"))
+            summary = data.get("summary", {})
+            rows[sub.name] = (
+                summary.get("count", 0),
+                summary.get("exact_match"),
+                summary.get("execution_accuracy"),
+            )
+        elif em_file.exists():
+            data = json.loads(em_file.read_text(encoding="utf-8"))
+            summary = data.get("summary", {})
+            rows[sub.name] = (
+                summary.get("count", 0),
+                summary.get("exact_match"),
+                None,
+            )
+    return rows
+
+
+def fmt(value):
+    return f"{value:.4f}" if value is not None else "  n/a  "
+
+
+def diff(new, base):
+    if new is None or base is None:
+        return "  n/a  "
+    return f"{new - base:+.4f}"
+
+
+baseline = collect(Path("zero_shot/results/qwen_compare"))
+augmented = collect(Path("zero_shot/results/qwen_compare_aug"))
+threshold = os.environ.get("AUGMENT_THRESHOLD", "0.80")
+
+print("=== Baseline ===")
 print(f"{'model':>8}  {'N':>5}  {'EM':>8}  {'EX':>8}")
-for name, n, em, ex in rows:
-    em_s = f"{em:.4f}" if em is not None else "  n/a  "
-    ex_s = f"{ex:.4f}" if ex is not None else "  n/a  "
-    print(f"{name:>8}  {n:>5}  {em_s:>8}  {ex_s:>8}")
+for name in sorted(baseline):
+    n, em, ex = baseline[name]
+    print(f"{name:>8}  {n:>5}  {fmt(em):>8}  {fmt(ex):>8}")
+
+if augmented:
+    print()
+    print(f"=== Augmented (threshold={threshold}) ===")
+    print(f"{'model':>8}  {'N':>5}  {'EM':>8}  {'EX':>8}  {'dEM':>8}  {'dEX':>8}")
+    for name in sorted(augmented):
+        n, em, ex = augmented[name]
+        base_em, base_ex = (None, None)
+        if name in baseline:
+            _, base_em, base_ex = baseline[name]
+        print(
+            f"{name:>8}  {n:>5}  {fmt(em):>8}  {fmt(ex):>8}  "
+            f"{diff(em, base_em):>8}  {diff(ex, base_ex):>8}"
+        )
 PY
 
 echo "Summary saved to ${SUMMARY_LOG}"
