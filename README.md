@@ -1,12 +1,13 @@
 # ViNL2SQL
 
-Pipeline zero-shot Text-to-SQL cho **ViSpider**: chạy Qwen2.5-Coder trên câu hỏi tiếng Việt, sinh SQL, chấm **Exact Match (EM)** và **Execution Accuracy (EX)** bằng Spider evaluator.
+Pipeline zero-shot Text-to-SQL cho **ViSpider**: chạy Qwen2.5-Coder trên câu hỏi tiếng Việt, có thể bật contextual augmentation để thêm schema hints, sinh SQL, rồi chấm **Exact Match (EM)** và **Execution Accuracy (EX)** bằng Spider evaluator.
 
-Pipeline hiện được tách thành 2 phase độc lập:
+Pipeline zero-shot được tách thành 2 phase độc lập:
 
 ```text
 Phase 1: inference + EM
   - load model
+  - nếu bật augmentation: thêm schema hints vào prompt
   - sinh SQL
   - lưu prediction/raw output/gold
   - tính EM only
@@ -18,6 +19,8 @@ Phase 2: EX
   - chạy pred_sql và gold_sql trên SQLite
   - có timeout per query để tránh treo evaluator
 ```
+
+Contextual augmentation là bước tùy chọn: tách danh từ/cụm danh từ tiếng Việt, so semantic với table/column bằng `intfloat/multilingual-e5-large-instruct`, rồi thêm hint dạng `"danh từ" -> Table.column` vào prompt.
 
 Mục tiêu: nếu server Vast.ai bị mất kết nối hoặc evaluator bị kẹt ở EX, kết quả inference của model vẫn đã được lưu an toàn từ Phase 1.
 
@@ -32,11 +35,20 @@ NL2SQL/
 │   └── spider_eval.py          # wrapper EM/EX, timeout-safe execution
 ├── spider_repo/                # Spider evaluator gốc, không chỉnh sửa
 ├── zero_shot/
-│   ├── run_zero_shot.py        # pipeline 2 phase
-│   ├── prompts.py              # prompt + SQL extraction
+│   ├── run_zero_shot.py        # pipeline 2 phase, hỗ trợ --augment/--hints-input
+│   ├── prompts.py              # baseline + augmented prompt, SQL extraction
+│   ├── common.py               # load dataset/tables + write_json dùng chung
+│   └── results/                # output local, ignored by git
+├── augmentation/
+│   ├── run_augment.py          # tạo hints.json + augment_stats.json riêng
+│   ├── pipeline.py             # POS filter + schema similarity pipeline
+│   ├── pos_filter.py           # tách danh từ/cụm danh từ tiếng Việt
+│   ├── schema_nouns.py         # chuẩn hóa table/column thành schema nouns
+│   ├── similarity.py           # E5 embedding + cosine similarity
+│   ├── stats.py                # thống kê coverage của hints
 │   └── results/                # output local, ignored by git
 ├── scripts/
-│   └── run_qwen_compare.sh     # chạy 4 model Qwen tuần tự
+│   └── run_qwen_compare.sh     # chạy baseline và augmented Qwen tuần tự
 ├── tests/
 └── requirements.txt
 ```
@@ -108,6 +120,86 @@ ls data/vispider_data/vispider_dev.json
 ls data/spider_db/concert_singer/concert_singer.sqlite
 ```
 
+## Contextual augmentation pipeline
+
+Augmentation tạo schema hints cho từng câu hỏi tiếng Việt trước khi sinh SQL:
+
+```text
+question_vi
+  -> underthesea POS tag
+  -> danh từ/cụm danh từ tiếng Việt
+  -> encode bằng intfloat/multilingual-e5-large-instruct
+  -> so với table/column đã normalize từ tables.json
+  -> giữ match có similarity >= threshold
+  -> thêm vào prompt dạng "danh từ" -> Table.column
+```
+
+Chạy augmentation riêng để tạo `hints.json` và `augment_stats.json`:
+
+```bash
+python -m augmentation.run_augment \
+  --dataset vispider \
+  --split dev \
+  --limit 20 \
+  --threshold 0.8 \
+  --output augmentation/results/smoke/hints.json \
+  --stats-output augmentation/results/smoke/augment_stats.json
+```
+
+`hints.json` có dạng:
+
+```json
+[
+  {
+    "index": 0,
+    "db_id": "concert_singer",
+    "question_vi": "...",
+    "hints": [
+      {
+        "vi_noun": "ca sĩ",
+        "schema_key": "singer.Name",
+        "similarity": 0.8123
+      }
+    ]
+  }
+]
+```
+
+`augment_stats.json` lưu config, số example có hint, phân phối similarity, và top danh từ chưa match.
+
+Có 2 cách dùng augmentation trong Phase 1:
+
+1. Tính hints trực tiếp trong lúc inference:
+
+```bash
+python -m zero_shot.run_zero_shot \
+  --mode inference \
+  --dataset vispider \
+  --split dev \
+  --model Qwen/Qwen2.5-Coder-7B-Instruct \
+  --augment \
+  --augment-threshold 0.8 \
+  --output zero_shot/results/qwen_compare_aug/7B/eval_em_only.json \
+  --predictions-output zero_shot/results/qwen_compare_aug/7B/predictions.txt \
+  --gold-output zero_shot/results/qwen_compare_aug/7B/gold.txt
+```
+
+2. Dùng lại hints đã tạo trước đó:
+
+```bash
+python -m zero_shot.run_zero_shot \
+  --mode inference \
+  --dataset vispider \
+  --split dev \
+  --model Qwen/Qwen2.5-Coder-7B-Instruct \
+  --hints-input augmentation/results/smoke/hints.json \
+  --output zero_shot/results/qwen_compare_aug/7B/eval_em_only.json \
+  --predictions-output zero_shot/results/qwen_compare_aug/7B/predictions.txt \
+  --gold-output zero_shot/results/qwen_compare_aug/7B/gold.txt
+```
+
+Khi dùng augmentation, `eval_em_only.json` vẫn lưu `hints` theo từng example để trace lại prompt context đã dùng.
+
 ## Chạy 4 model Qwen tuần tự
 
 Script chính:
@@ -116,7 +208,7 @@ Script chính:
 bash scripts/run_qwen_compare.sh
 ```
 
-Mặc định chạy 4 model:
+Mặc định chạy cả baseline và augmented cho 4 model:
 
 ```text
 Qwen/Qwen2.5-Coder-0.5B-Instruct
@@ -125,14 +217,34 @@ Qwen/Qwen2.5-Coder-3B-Instruct
 Qwen/Qwen2.5-Coder-7B-Instruct
 ```
 
-Mỗi model chạy theo thứ tự:
+Mỗi biến thể/model chạy theo thứ tự:
 
 ```text
-Phase 1: inference + EM
-Phase 2: EX từ artifact Phase 1
+baseline Phase 1: inference + EM
+baseline Phase 2: EX từ artifact Phase 1
+augmented Phase 1: inference + EM với --augment
+augmented Phase 2: EX từ artifact Phase 1
 ```
 
 Nếu Phase 2 fail, các file Phase 1 vẫn được giữ nguyên.
+
+Chỉ chạy baseline:
+
+```bash
+RUN_AUG=0 bash scripts/run_qwen_compare.sh
+```
+
+Chỉ chạy augmented:
+
+```bash
+RUN_BASELINE=0 bash scripts/run_qwen_compare.sh
+```
+
+Đổi threshold cho augmentation:
+
+```bash
+AUGMENT_THRESHOLD=0.85 bash scripts/run_qwen_compare.sh
+```
 
 ### Smoke test
 
@@ -162,10 +274,16 @@ SPLIT=dev bash scripts/run_qwen_compare.sh
 
 ## Output structure
 
-Mỗi model có folder riêng:
+Mỗi model có folder riêng trong baseline hoặc augmented result tree:
 
 ```text
-zero_shot/results/qwen_compare/
+zero_shot/results/qwen_compare/       # baseline
+├── 0_5B/
+├── 1_5B/
+├── 3B/
+└── 7B/
+
+zero_shot/results/qwen_compare_aug/   # augmented
 ├── 0_5B/
 ├── 1_5B/
 ├── 3B/
@@ -193,11 +311,16 @@ zero_shot/results/qwen_compare/summary.log
 Ví dụ format summary:
 
 ```text
+=== Baseline ===
    model      N        EM        EX
     0_5B   1034    0.xxxx    0.xxxx
     1_5B   1034    0.xxxx    0.xxxx
       3B   1034    0.xxxx    0.xxxx
       7B   1034    0.xxxx    0.xxxx
+
+=== Augmented (threshold=0.8) ===
+   model      N        EM        EX       dEM       dEX
+    0_5B   1034    0.xxxx    0.xxxx   +0.xxxx   +0.xxxx
 ```
 
 Nếu model chỉ chạy xong Phase 1, EX sẽ hiện `n/a` nhưng EM vẫn có.
@@ -408,12 +531,13 @@ tail -f zero_shot/results/qwen_compare/7B/run.log
 Từ PowerShell trên Windows:
 
 ```powershell
-scp -P <PORT> -r root@<HOST>:/workspace/NL2SQL/zero_shot/results/qwen_compare E:\NL2SQL\vast_results
+scp -P <PORT> -r root@<HOST>:/workspace/NL2SQL/zero_shot/results/qwen_compare E:\NL2SQL\vast_results\qwen_compare
+scp -P <PORT> -r root@<HOST>:/workspace/NL2SQL/zero_shot/results/qwen_compare_aug E:\NL2SQL\vast_results\qwen_compare_aug
 ```
 
 ## Notes
 
-- `data/` và `zero_shot/results/` bị ignore bởi git.
+- `data/`, `zero_shot/results/`, `augmentation/results/`, và `vast_results/` bị ignore bởi git.
 - `spider_repo/evaluation.py` là evaluator gốc, không chỉnh sửa trực tiếp.
 - Timeout EX nằm trong wrapper [shared/spider_eval.py](shared/spider_eval.py), không nằm trong evaluator gốc.
 - Phase 2 có thể chạy lại nhiều lần từ cùng `predictions.txt` và `gold.txt` với timeout khác nhau.
