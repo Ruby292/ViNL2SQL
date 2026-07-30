@@ -40,7 +40,7 @@ def encode_texts(texts: List[str], encoder, prefix: str = "", batch_size: int = 
     embeddings = encoder.encode(
         [prefix + text for text in texts],
         batch_size=batch_size,
-        show_progress_bar=False,
+        show_progress_bar=True,
         normalize_embeddings=True,
         convert_to_numpy=True,
     )

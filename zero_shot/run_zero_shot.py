@@ -271,6 +271,12 @@ def run_inference_mode(args) -> int:
             item["parse_error"] = detail["error"]
         per_example.append(item)
 
+    augmentation_mode = "none"
+    if args.hints_input:
+        augmentation_mode = "precomputed_hints"
+    elif args.augment:
+        augmentation_mode = "on_the_fly"
+
     write_json(
         output_path,
         {
@@ -280,6 +286,20 @@ def run_inference_mode(args) -> int:
                 "model": args.model,
                 "dataset": tag,
                 "timestamp": datetime.now().isoformat(),
+                "augmentation": {
+                    "mode": augmentation_mode,
+                    "hints_input": args.hints_input,
+                    "augment_threshold": (
+                        args.augment_threshold
+                        if args.augment or args.hints_input
+                        else None
+                    ),
+                    "examples_with_hints": (
+                        sum(1 for hints in hints_per_example if hints)
+                        if hints_per_example is not None
+                        else 0
+                    ),
+                },
             },
             "by_difficulty": {
                 level: {
@@ -364,6 +384,8 @@ def run_exec_mode(args) -> int:
     }
     if em_summary and em_summary.get("exact_match") is not None:
         summary["exact_match"] = em_summary["exact_match"]
+    if em_summary and em_summary.get("augmentation"):
+        summary["augmentation"] = em_summary["augmentation"]
 
     output_data = {"summary": summary}
     if em_summary is not None:

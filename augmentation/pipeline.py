@@ -38,16 +38,27 @@ def augment_examples(
         schema_embedding_cache[db_id] = (schema_keys, schema_embs)
 
     flat_candidates = []
-    offsets = []
     for candidates in noun_candidates_per_example:
-        offsets.append(len(flat_candidates))
         flat_candidates.extend(candidates)
 
     if flat_candidates:
-        print(f"[Augmentation] Encoding {len(flat_candidates)} question candidates...")
-        flat_embs = encode_texts(flat_candidates, encoder, prefix=E5_QUERY_INSTRUCTION)
+        unique_candidates = list(dict.fromkeys(flat_candidates))
+        print(
+            f"[Augmentation] Encoding {len(unique_candidates)} unique question "
+            f"candidates ({len(flat_candidates)} total)..."
+        )
+        unique_embs = encode_texts(
+            unique_candidates,
+            encoder,
+            prefix=E5_QUERY_INSTRUCTION,
+        )
+        candidate_to_idx = {
+            candidate: idx
+            for idx, candidate in enumerate(unique_candidates)
+        }
     else:
-        flat_embs = None
+        unique_embs = None
+        candidate_to_idx = {}
 
     hints_per_example = []
     for idx, (example, candidates) in enumerate(zip(examples, noun_candidates_per_example)):
@@ -55,12 +66,11 @@ def augment_examples(
             hints_per_example.append([])
             continue
 
-        start = offsets[idx]
-        end = start + len(candidates)
         schema_keys, schema_embs = schema_embedding_cache[example["db_id"]]
+        candidate_indexes = [candidate_to_idx[candidate] for candidate in candidates]
         hints = compute_matches(
             noun_x_texts=candidates,
-            noun_x_embs=flat_embs[start:end],
+            noun_x_embs=unique_embs[candidate_indexes],
             schema_keys=schema_keys,
             schema_embs=schema_embs,
             threshold=threshold,
