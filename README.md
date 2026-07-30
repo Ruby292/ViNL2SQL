@@ -217,12 +217,21 @@ Qwen/Qwen2.5-Coder-3B-Instruct
 Qwen/Qwen2.5-Coder-7B-Instruct
 ```
 
+Với augmented run, script dùng `hints.json` đã tạo sẵn theo threshold:
+
+```text
+augmentation/results/<split>_t080/hints.json
+augmentation/results/<split>_t085/hints.json
+```
+
+Tức là `run_qwen_compare.sh` truyền `--hints-input` vào Phase 1, không encode schema/question lại. Nếu muốn chỉ định file hints thủ công, dùng `AUGMENT_HINTS_INPUT=/path/to/hints.json`.
+
 Mỗi biến thể/model chạy theo thứ tự:
 
 ```text
 baseline Phase 1: inference + EM
 baseline Phase 2: EX từ artifact Phase 1
-augmented Phase 1: inference + EM với --augment
+augmented Phase 1: inference + EM với --hints-input
 augmented Phase 2: EX từ artifact Phase 1
 ```
 
@@ -245,6 +254,8 @@ RUN_BASELINE=0 bash scripts/run_qwen_compare.sh
 ```bash
 AUGMENT_THRESHOLD=0.85 bash scripts/run_qwen_compare.sh
 ```
+
+Lệnh trên sẽ tìm `augmentation/results/dev_t085/hints.json` khi `SPLIT=dev`.
 
 ### Smoke test
 

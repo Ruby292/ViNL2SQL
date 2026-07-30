@@ -206,6 +206,17 @@ def run_inference_mode(args) -> int:
         with open(args.hints_input, "r", encoding="utf-8") as f:
             hints_data = json.load(f)
         hints_map = {item["index"]: item["hints"] for item in hints_data}
+        missing_hint_indexes = [
+            i for i in range(len(examples))
+            if i not in hints_map
+        ]
+        if missing_hint_indexes:
+            preview = ", ".join(str(i) for i in missing_hint_indexes[:10])
+            raise ValueError(
+                f"Hints file {args.hints_input} is missing "
+                f"{len(missing_hint_indexes)} example indexes. "
+                f"First missing indexes: {preview}"
+            )
         hints_per_example = [hints_map.get(i, []) for i in range(len(examples))]
         print(f"Loaded hints for {len(hints_map)} examples from {args.hints_input}")
 

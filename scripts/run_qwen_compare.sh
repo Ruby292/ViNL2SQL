@@ -19,6 +19,8 @@ TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"
 AUGMENT_THRESHOLD="${AUGMENT_THRESHOLD:-0.8}"
 RUN_BASELINE="${RUN_BASELINE:-1}"
 RUN_AUG="${RUN_AUG:-1}"
+HINTS_ROOT="${HINTS_ROOT:-augmentation/results}"
+AUGMENT_HINTS_INPUT="${AUGMENT_HINTS_INPUT:-}"
 
 BASELINE_ROOT="zero_shot/results/qwen_compare"
 AUG_ROOT="zero_shot/results/qwen_compare_aug"
@@ -33,6 +35,12 @@ model_id_for() {
     32B)  echo "Qwen/Qwen2.5-Coder-32B-Instruct"  ;;
     *)    echo "" ;;
   esac
+}
+
+threshold_tag() {
+  local normalized
+  normalized="$(printf "%.2f" "$1")"
+  echo "t${normalized/./}"
 }
 
 run_model_variant() {
@@ -57,6 +65,21 @@ run_model_variant() {
   echo " -> ${outdir}"
   echo "============================================================"
 
+  local hints_path=""
+  if [[ "$augment_enabled" == "1" ]]; then
+    hints_path="$AUGMENT_HINTS_INPUT"
+    if [[ -z "$hints_path" ]]; then
+      hints_path="${HINTS_ROOT}/${SPLIT}_$(threshold_tag "$AUGMENT_THRESHOLD")/hints.json"
+    fi
+    if [[ ! -f "$hints_path" ]]; then
+      echo "!! Missing precomputed hints file: ${hints_path}"
+      echo "   Create it with python -m augmentation.run_augment, or set AUGMENT_HINTS_INPUT."
+      return 1
+    fi
+    echo " mode  -> precomputed hints (--hints-input only)"
+    echo " hints -> ${hints_path}"
+  fi
+
   local inf_cmd=(python -m zero_shot.run_zero_shot
         --mode inference
         --dataset "$DATASET"
@@ -73,7 +96,7 @@ run_model_variant() {
   fi
 
   if [[ "$augment_enabled" == "1" ]]; then
-    inf_cmd+=(--augment --augment-threshold "$AUGMENT_THRESHOLD")
+    inf_cmd+=(--hints-input "$hints_path" --augment-threshold "$AUGMENT_THRESHOLD")
   fi
 
   echo "[Phase 1] Inference + EM (${variant_label})" | tee "$log_path"
