@@ -1,0 +1,70 @@
+{
+  "config": {
+    "model": "intfloat/multilingual-e5-large-instruct",
+    "threshold": 0.87
+  },
+  "counts": {
+    "total_examples": 1034,
+    "examples_with_hints": 158,
+    "examples_without_hints": 876,
+    "avg_hints_per_example": 0.16924564796905223,
+    "max_hints_in_one_example": 2
+  },
+  "similarity_distribution": {
+    "bins": [
+      0.8,
+      0.85,
+      0.9,
+      0.95,
+      1.0
+    ],
+    "counts": [
+      0,
+      171,
+      4,
+      0
+    ]
+  },
+  "top_unmatched_nouns": [
+    {
+      "noun": "tên",
+      "occurrences": 249
+    },
+    {
+      "noun": "số lượng",
+      "occurrences": 139
+    },
+    {
+      "noun": "quốc gia",
+      "occurrences": 135
+    },
+    {
+      "noun": "Tên",
+      "occurrences": 132
+    },
+    {
+      "noun": "người",
+      "occurrences": 86
+    },
+    {
+      "noun": "nhau",
+      "occurrences": 65
+    },
+    {
+      "noun": "số",
+      "occurrences": 64
+    },
+    {
+      "noun": "loại",
+      "occurrences": 62
+    },
+    {
+      "noun": "xe",
+      "occurrences": 62
+    },
+    {
+      "noun": "'",
+      "occurrences": 61
+    }
+  ]
+}
