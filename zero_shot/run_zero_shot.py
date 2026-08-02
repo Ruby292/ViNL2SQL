@@ -217,6 +217,19 @@ def run_inference_mode(args) -> int:
                 f"{len(missing_hint_indexes)} example indexes. "
                 f"First missing indexes: {preview}"
             )
+        invalid_hints = [
+            (item["index"], hint)
+            for item in hints_data
+            for hint in item.get("hints", [])
+            if "table" not in hint
+        ]
+        if invalid_hints:
+            bad_index, bad_hint = invalid_hints[0]
+            raise ValueError(
+                f"Hints file {args.hints_input} uses an unsupported hint format "
+                f"at index {bad_index}: {bad_hint}. Regenerate hints with the "
+                "table-level augmentation pipeline."
+            )
         hints_per_example = [hints_map.get(i, []) for i in range(len(examples))]
         print(f"Loaded hints for {len(hints_map)} examples from {args.hints_input}")
 

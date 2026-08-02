@@ -20,18 +20,18 @@ class AugmentPromptTests(unittest.TestCase):
             build_prompt("Ca sĩ nào?", "db1", TABLES),
         )
 
-    def test_augmented_prompt_inserts_hints_before_question(self):
+    def test_augmented_prompt_inserts_table_hints_before_question(self):
         prompt = build_prompt_augmented(
             "Ca sĩ ở quốc gia nào?",
             "db1",
             TABLES,
-            [{"vi_noun": "quốc gia", "schema_key": "Singer.Country", "similarity": 0.91}],
+            [{"vi_noun": "quốc gia", "table": "Singer", "similarity": 0.91}],
         )
 
-        hints_pos = prompt.index("Relevant schema hints")
+        hints_pos = prompt.index("The following Vietnamese terms map to these tables")
         question_pos = prompt.index("Question:")
         self.assertLess(hints_pos, question_pos)
-        self.assertIn('  - "quốc gia" -> Singer.Country', prompt)
+        self.assertIn('  - "quốc gia" → table: Singer', prompt)
 
 
 if __name__ == "__main__":

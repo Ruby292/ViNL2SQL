@@ -18,7 +18,7 @@ class SimilarityTests(unittest.TestCase):
 
     def test_compute_matches_returns_empty_for_empty_inputs(self):
         self.assertEqual(
-            compute_matches([], np.empty((0, 2)), ["Singer.Name"], np.ones((1, 2))),
+            compute_matches([], np.empty((0, 2)), ["Singer"], np.ones((1, 2))),
             [],
         )
         self.assertEqual(
@@ -26,23 +26,23 @@ class SimilarityTests(unittest.TestCase):
             [],
         )
 
-    def test_compute_matches_keeps_every_pair_above_threshold_sorted(self):
+    def test_compute_matches_keeps_top_table_per_noun_sorted(self):
         noun_embs = np.array([[1.0, 0.0], [0.8, 0.6]], dtype=np.float32)
-        schema_embs = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
+        table_embs = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
 
         matches = compute_matches(
             ["tên", "quốc gia"],
             noun_embs,
-            ["Singer.Name", "Singer.Country"],
-            schema_embs,
+            ["Singer", "Country"],
+            table_embs,
             threshold=0.75,
         )
 
         self.assertEqual(
             matches,
             [
-                {"vi_noun": "tên", "schema_key": "Singer.Name", "similarity": 1.0},
-                {"vi_noun": "quốc gia", "schema_key": "Singer.Name", "similarity": 0.8},
+                {"vi_noun": "tên", "table": "Singer", "similarity": 1.0},
+                {"vi_noun": "quốc gia", "table": "Singer", "similarity": 0.8},
             ],
         )
 
@@ -50,7 +50,7 @@ class SimilarityTests(unittest.TestCase):
         matches = compute_matches(
             ["tên"],
             np.array([[0.7, 0.0]], dtype=np.float32),
-            ["Singer.Name"],
+            ["Singer"],
             np.array([[1.0, 0.0]], dtype=np.float32),
             threshold=0.8,
         )

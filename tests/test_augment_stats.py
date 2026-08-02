@@ -8,8 +8,8 @@ class AugmentStatsTests(unittest.TestCase):
         stats = build_augment_stats(
             hints_per_example=[
                 [
-                    {"vi_noun": "tên", "schema_key": "Singer.Name", "similarity": 0.81},
-                    {"vi_noun": "quốc gia", "schema_key": "Singer.Country", "similarity": 0.96},
+                    {"vi_noun": "tên", "table": "Singer", "similarity": 0.81},
+                    {"vi_noun": "quốc gia", "table": "Country", "similarity": 0.96},
                 ],
                 [],
             ],

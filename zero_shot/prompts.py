@@ -92,18 +92,20 @@ The query should be syntactically correct and answer the question."""
 
 
 def build_prompt_augmented(question: str, db_id: str, tables: Dict, hints: List[Dict]) -> str:
+    """Build the Text-to-SQL prompt with optional table-level hints."""
+    if not hints:
+        return build_prompt(question, db_id, tables)
+
     schema = format_schema(db_id, tables)
-    hints_section = ""
-    if hints:
-        hint_lines = [
-            f'  - "{hint["vi_noun"]}" -> {hint["schema_key"]}'
-            for hint in hints
-        ]
-        hints_section = (
-            "\nRelevant schema hints (Vietnamese -> SQL identifier):\n"
-            + "\n".join(hint_lines)
-            + "\n"
-        )
+    hint_lines = [
+        f'  - "{hint["vi_noun"]}" → table: {hint["table"]}'
+        for hint in hints
+    ]
+    hints_section = (
+        "\nThe following Vietnamese terms map to these tables:\n"
+        + "\n".join(hint_lines)
+        + "\n"
+    )
 
     prompt = f"""You are an expert SQL developer. Given a database schema and a natural language question, generate a valid SQL query.
 

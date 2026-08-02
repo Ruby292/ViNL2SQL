@@ -129,9 +129,10 @@ question_vi
   -> underthesea POS tag
   -> danh từ/cụm danh từ tiếng Việt
   -> encode bằng intfloat/multilingual-e5-large-instruct
-  -> so với table/column đã normalize từ tables.json
-  -> giữ match có similarity >= threshold
-  -> thêm vào prompt dạng "danh từ" -> Table.column
+  -> so với table-level text từ tables.json
+  -> giữ top-1 table match cho mỗi danh từ nếu similarity >= threshold
+  -> dedupe theo table và giữ tối đa 3 hints/câu hỏi
+  -> thêm vào prompt dạng "danh từ" -> table: Table
 ```
 
 Chạy augmentation riêng để tạo `hints.json` và `augment_stats.json`:
@@ -157,7 +158,7 @@ python -m augmentation.run_augment \
     "hints": [
       {
         "vi_noun": "ca sĩ",
-        "schema_key": "singer.Name",
+        "table": "singer",
         "similarity": 0.8123
       }
     ]

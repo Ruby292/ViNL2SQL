@@ -50,26 +50,27 @@ def encode_texts(texts: List[str], encoder, prefix: str = "", batch_size: int = 
 def compute_matches(
     noun_x_texts: List[str],
     noun_x_embs: np.ndarray,
-    schema_keys: List[str],
-    schema_embs: np.ndarray,
+    table_names: List[str],
+    table_embs: np.ndarray,
     threshold: float = 0.8,
 ) -> List[Dict]:
-    if not noun_x_texts or not schema_keys:
+    """Return the best table match for each noun candidate above threshold."""
+    if not noun_x_texts or not table_names:
         return []
 
-    sim_matrix = noun_x_embs @ schema_embs.T
+    sim_matrix = noun_x_embs @ table_embs.T
     matches = []
     for noun_idx, vi_noun in enumerate(noun_x_texts):
-        for schema_idx, schema_key in enumerate(schema_keys):
-            similarity = float(sim_matrix[noun_idx, schema_idx])
-            if similarity >= threshold:
-                matches.append(
-                    {
-                        "vi_noun": vi_noun,
-                        "schema_key": schema_key,
-                        "similarity": round(similarity, 4),
-                    }
-                )
+        best_table_idx = int(np.argmax(sim_matrix[noun_idx]))
+        similarity = float(sim_matrix[noun_idx, best_table_idx])
+        if similarity >= threshold:
+            matches.append(
+                {
+                    "vi_noun": vi_noun,
+                    "table": table_names[best_table_idx],
+                    "similarity": round(similarity, 4),
+                }
+            )
 
     matches.sort(key=lambda item: item["similarity"], reverse=True)
     return matches
