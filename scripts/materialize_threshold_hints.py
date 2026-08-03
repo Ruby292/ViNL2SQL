@@ -29,8 +29,8 @@ def parse_args():
     parser.add_argument("--split", default="dev", choices=["dev", "test", "train"])
     parser.add_argument("--source-hints", required=True)
     parser.add_argument("--source-stats")
-    parser.add_argument("--output-root", default="augmentation/results")
-    parser.add_argument("--thresholds", nargs="+", type=float, default=[0.80, 0.85])
+    parser.add_argument("--output-root", default="augmentation/results_embeddinggemma")
+    parser.add_argument("--thresholds", nargs="+", type=float, default=[0.40, 0.45])
     parser.add_argument("--model-name")
     return parser.parse_args()
 

@@ -3,11 +3,11 @@ from typing import Dict, List, Tuple
 from augmentation.pos_filter import extract_noun_candidates
 from augmentation.schema_nouns import extract_schema_nouns
 from augmentation.similarity import (
-    DEFAULT_E5_MODEL,
-    E5_QUERY_INSTRUCTION,
+    DEFAULT_EMBEDDING_MODEL,
     compute_matches,
     encode_texts,
     get_encoder,
+    query_prefix_for_model,
 )
 from augmentation.stats import build_augment_stats
 
@@ -38,8 +38,8 @@ def dedupe_and_limit_hints(
 def augment_examples(
     examples: List[Dict],
     tables: Dict,
-    model_name: str = DEFAULT_E5_MODEL,
-    threshold: float = 0.8,
+    model_name: str = DEFAULT_EMBEDDING_MODEL,
+    threshold: float = 0.4,
 ) -> Tuple[List[List[Dict]], Dict]:
     """Create table-level schema hints for ViSpider examples."""
     print(f"[Augmentation] Loading encoder: {model_name}")
@@ -58,7 +58,12 @@ def augment_examples(
         schema_noun_map = extract_schema_nouns(tables[db_id])
         table_names = list(schema_noun_map.keys())
         table_texts = list(schema_noun_map.values())
-        table_embs = encode_texts(table_texts, encoder)
+        table_embs = encode_texts(
+            table_texts,
+            encoder,
+            task="document",
+            model_name=model_name,
+        )
         schema_embedding_cache[db_id] = (table_names, table_embs)
 
     flat_candidates = []
@@ -74,7 +79,9 @@ def augment_examples(
         unique_embs = encode_texts(
             unique_candidates,
             encoder,
-            prefix=E5_QUERY_INSTRUCTION,
+            prefix=query_prefix_for_model(model_name),
+            task="query",
+            model_name=model_name,
         )
         candidate_to_idx = {
             candidate: idx

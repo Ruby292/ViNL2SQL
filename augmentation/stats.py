@@ -2,7 +2,7 @@ from collections import Counter
 from typing import Dict, List, Sequence
 
 
-SIMILARITY_BINS = [0.80, 0.85, 0.90, 0.95, 1.00]
+SIMILARITY_BINS = [0.0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 
 def build_augment_stats(

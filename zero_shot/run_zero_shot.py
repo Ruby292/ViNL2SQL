@@ -7,6 +7,7 @@ from typing import Dict, List, Tuple
 
 from tqdm import tqdm
 
+from augmentation.similarity import DEFAULT_EMBEDDING_MODEL
 from shared.spider_eval import (
     parse_gold_file,
     parse_pred_file,
@@ -56,8 +57,8 @@ def parse_args():
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.7)
     parser.add_argument("--hints-input", type=str, default=None, help="Path to hints.json from augmentation pipeline")
     parser.add_argument("--augment", action="store_true")
-    parser.add_argument("--augment-threshold", type=float, default=0.8)
-    parser.add_argument("--augment-model", default="intfloat/multilingual-e5-large-instruct")
+    parser.add_argument("--augment-threshold", type=float, default=0.4)
+    parser.add_argument("--augment-model", default=DEFAULT_EMBEDDING_MODEL)
     parser.add_argument("--augment-stats-output")
     return parser.parse_args()
 

@@ -6,7 +6,7 @@ from unittest.mock import patch
 import numpy as np
 
 from augmentation import similarity
-from augmentation.similarity import compute_matches, get_encoder
+from augmentation.similarity import compute_matches, encode_texts, get_encoder
 
 
 class SimilarityTests(unittest.TestCase):
@@ -70,6 +70,42 @@ class SimilarityTests(unittest.TestCase):
 
         self.assertIs(first, second)
         self.assertEqual(created, ["fake-model"])
+
+    def test_encode_texts_uses_embeddinggemma_query_and_document_methods(self):
+        calls = []
+
+        class FakeEmbeddingGemma:
+            def encode_query(self, texts, **kwargs):
+                calls.append(("query", texts, kwargs))
+                return np.array([[1.0, 0.0]], dtype=np.float32)
+
+            def encode_document(self, texts, **kwargs):
+                calls.append(("document", texts, kwargs))
+                return np.array([[0.0, 1.0]], dtype=np.float32)
+
+        encoder = FakeEmbeddingGemma()
+
+        query_embs = encode_texts(
+            ["stadium"],
+            encoder,
+            task="query",
+            model_name="google/embeddinggemma-300m",
+        )
+        document_embs = encode_texts(
+            ["stadium: Name, Location"],
+            encoder,
+            task="document",
+            model_name="google/embeddinggemma-300m",
+        )
+
+        self.assertEqual(calls[0][0], "query")
+        self.assertEqual(calls[0][1], ["stadium"])
+        self.assertTrue(calls[0][2]["normalize_embeddings"])
+        self.assertEqual(calls[1][0], "document")
+        self.assertEqual(calls[1][1], ["stadium: Name, Location"])
+        self.assertTrue(calls[1][2]["normalize_embeddings"])
+        self.assertEqual(query_embs.dtype, np.float32)
+        self.assertEqual(document_embs.dtype, np.float32)
 
 
 if __name__ == "__main__":

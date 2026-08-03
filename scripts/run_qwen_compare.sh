@@ -16,10 +16,10 @@ GPU_MEM_UTIL="${GPU_MEM_UTIL:-0.85}"
 LIMIT="${LIMIT:-}"
 SIZES="${SIZES:-0_5B 1_5B 3B 7B}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"
-AUGMENT_THRESHOLD="${AUGMENT_THRESHOLD:-0.8}"
+AUGMENT_THRESHOLD="${AUGMENT_THRESHOLD:-0.4}"
 RUN_BASELINE="${RUN_BASELINE:-1}"
 RUN_AUG="${RUN_AUG:-1}"
-HINTS_ROOT="${HINTS_ROOT:-augmentation/results}"
+HINTS_ROOT="${HINTS_ROOT:-augmentation/results_embeddinggemma}"
 AUGMENT_HINTS_INPUT="${AUGMENT_HINTS_INPUT:-}"
 
 BASELINE_ROOT="zero_shot/results/qwen_compare"
@@ -201,7 +201,7 @@ def diff(new, base):
 
 baseline = collect(Path("zero_shot/results/qwen_compare"))
 augmented = collect(Path("zero_shot/results/qwen_compare_aug"))
-threshold = os.environ.get("AUGMENT_THRESHOLD", "0.80")
+threshold = os.environ.get("AUGMENT_THRESHOLD", "0.40")
 
 print("=== Baseline ===")
 print(f"{'model':>8}  {'N':>5}  {'EM':>8}  {'EX':>8}")

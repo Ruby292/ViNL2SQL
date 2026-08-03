@@ -1,0 +1,86 @@
+{
+  "config": {
+    "model": "google/embeddinggemma-300m",
+    "threshold": 0.4
+  },
+  "counts": {
+    "total_examples": 1034,
+    "examples_with_hints": 448,
+    "examples_without_hints": 586,
+    "avg_hints_per_example": 0.5454545454545454,
+    "max_hints_in_one_example": 3
+  },
+  "similarity_distribution": {
+    "bins": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "counts": [
+      0,
+      0,
+      0,
+      0,
+      272,
+      171,
+      100,
+      19,
+      2,
+      0,
+      0,
+      0
+    ]
+  },
+  "top_unmatched_nouns": [
+    {
+      "noun": "tên",
+      "occurrences": 249
+    },
+    {
+      "noun": "số lượng",
+      "occurrences": 139
+    },
+    {
+      "noun": "quốc gia",
+      "occurrences": 135
+    },
+    {
+      "noun": "Tên",
+      "occurrences": 132
+    },
+    {
+      "noun": "người",
+      "occurrences": 86
+    },
+    {
+      "noun": "nhau",
+      "occurrences": 65
+    },
+    {
+      "noun": "số",
+      "occurrences": 64
+    },
+    {
+      "noun": "loại",
+      "occurrences": 62
+    },
+    {
+      "noun": "xe",
+      "occurrences": 62
+    },
+    {
+      "noun": "'",
+      "occurrences": 61
+    }
+  ]
+}

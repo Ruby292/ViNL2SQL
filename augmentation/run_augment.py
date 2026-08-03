@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 from augmentation.pipeline import augment_examples
-from augmentation.similarity import DEFAULT_E5_MODEL, cleanup_encoder
+from augmentation.similarity import DEFAULT_EMBEDDING_MODEL, cleanup_encoder
 from zero_shot.common import load_dataset, load_tables, write_json
 
 
@@ -14,8 +14,8 @@ def parse_args():
     parser.add_argument("--dataset", default="vispider", choices=["vispider"])
     parser.add_argument("--split", default="dev", choices=["dev", "test", "train"])
     parser.add_argument("--limit", type=int)
-    parser.add_argument("--model", default=DEFAULT_E5_MODEL)
-    parser.add_argument("--threshold", type=float, default=0.8)
+    parser.add_argument("--model", default=DEFAULT_EMBEDDING_MODEL)
+    parser.add_argument("--threshold", type=float, default=0.4)
     parser.add_argument("--output", required=True)
     parser.add_argument("--stats-output")
     return parser.parse_args()

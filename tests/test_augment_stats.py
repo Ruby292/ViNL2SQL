@@ -27,7 +27,10 @@ class AugmentStatsTests(unittest.TestCase):
         self.assertEqual(stats["counts"]["examples_without_hints"], 1)
         self.assertEqual(stats["counts"]["avg_hints_per_example"], 1.0)
         self.assertEqual(stats["counts"]["max_hints_in_one_example"], 2)
-        self.assertEqual(stats["similarity_distribution"]["counts"], [1, 0, 0, 1])
+        self.assertEqual(
+            stats["similarity_distribution"]["counts"],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+        )
         self.assertEqual(
             stats["top_unmatched_nouns"],
             [
