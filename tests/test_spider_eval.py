@@ -24,6 +24,16 @@ class SpiderEvalTests(unittest.TestCase):
             path.write_text("SELECT 'a\tb'\tdb1\n", encoding="utf-8")
             self.assertEqual(parse_gold_file(str(path)), [("SELECT 'a\tb'", "db1")])
 
+    def test_parse_files_strip_utf8_bom_from_first_line(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gold_path = Path(tmp) / "gold.txt"
+            pred_path = Path(tmp) / "predictions.txt"
+            gold_path.write_text("\ufeffSELECT 1\tdb1\n", encoding="utf-8")
+            pred_path.write_text("\ufeffSELECT 1\n", encoding="utf-8")
+
+            self.assertEqual(parse_gold_file(str(gold_path)), [("SELECT 1", "db1")])
+            self.assertEqual(parse_pred_file(str(pred_path)), ["SELECT 1"])
+
     def test_execute_sql_reports_sql_errors(self):
         with tempfile.TemporaryDirectory() as tmp:
             db = Path(tmp) / "test.sqlite"

@@ -1,0 +1,116 @@
+{
+  "config": {
+    "model": "intfloat/multilingual-e5-large-instruct",
+    "threshold": 0.9
+  },
+  "counts": {
+    "total_examples": 1034,
+    "examples_with_hints": 784,
+    "examples_without_hints": 250,
+    "avg_hints_per_example": 1.1266924564796905,
+    "max_hints_in_one_example": 3
+  },
+  "similarity_distribution": {
+    "bins": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "counts": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1165
+    ]
+  },
+  "top_unmatched_nouns": [
+    {
+      "noun": "người",
+      "occurrences": 66
+    },
+    {
+      "noun": "chuyến",
+      "occurrences": 56
+    },
+    {
+      "noun": "mã",
+      "occurrences": 43
+    },
+    {
+      "noun": "quốc gia",
+      "occurrences": 36
+    },
+    {
+      "noun": "ngôn ngữ",
+      "occurrences": 36
+    },
+    {
+      "noun": "tiếng",
+      "occurrences": 34
+    },
+    {
+      "noun": "con chó",
+      "occurrences": 31
+    },
+    {
+      "noun": "mẫu",
+      "occurrences": 30
+    },
+    {
+      "noun": "Hiển thị tên",
+      "occurrences": 28
+    },
+    {
+      "noun": "Liệt kê tên",
+      "occurrences": 27
+    }
+  ],
+  "filter_stats": {
+    "total_nouns_before_filter": 5331,
+    "english_nouns_removed": 803,
+    "vietnamese_stopwords_removed": 1075,
+    "schema_name_duplicates_removed": 245,
+    "too_short_removed": 63,
+    "too_long_removed": 3,
+    "nouns_after_filter": 3142,
+    "top_removed_stopwords": {
+      "tên": 381,
+      "số lượng": 147,
+      "số": 74,
+      "năm": 62,
+      "loại": 62,
+      "hiển thị": 52,
+      "con": 52,
+      "liệt kê": 50,
+      "thứ tự": 23,
+      "giá trị": 21
+    }
+  },
+  "table_type_distribution": {
+    "entity": 1165,
+    "reference": 0,
+    "junction": 0
+  },
+  "match_level": {
+    "table_level": 769,
+    "column_level": 396
+  }
+}

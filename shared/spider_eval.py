@@ -307,6 +307,8 @@ def parse_gold_file(gold_path: str) -> List[Tuple[str, str]]:
     with open(gold_path, "r", encoding="utf-8") as f:
         for line_num, line in enumerate(f, start=1):
             line = line.rstrip("\n")
+            if line_num == 1:
+                line = line.lstrip("\ufeff")
             if not line.strip():
                 continue
             parts = line.rsplit("\t", 1)
@@ -319,4 +321,7 @@ def parse_gold_file(gold_path: str) -> List[Tuple[str, str]]:
 def parse_pred_file(pred_path: str) -> List[str]:
     """Parse predictions while preserving blank prediction lines as entries."""
     with open(pred_path, "r", encoding="utf-8") as f:
-        return [line.rstrip("\n") for line in f]
+        predictions = [line.rstrip("\n") for line in f]
+    if predictions:
+        predictions[0] = predictions[0].lstrip("\ufeff")
+    return predictions

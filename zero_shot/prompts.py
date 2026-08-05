@@ -5,6 +5,8 @@ Prompt formatting utilities for Text-to-SQL zero-shot inference.
 import re
 from typing import Dict, List, Tuple
 
+from augmentation.schema_nouns import is_internal_table
+
 
 def format_schema(db_id: str, tables: Dict) -> str:
     """
@@ -31,6 +33,8 @@ def format_schema(db_id: str, tables: Dict) -> str:
 
     # Group columns by table
     for table_idx, table_name in enumerate(table_names_original):
+        if is_internal_table(table_name):
+            continue
         schema_lines.append(f"Table: {table_name}")
 
         # Find all columns for this table
@@ -47,7 +51,7 @@ def format_schema(db_id: str, tables: Dict) -> str:
 
     # Format foreign keys
     if foreign_keys:
-        schema_lines.append("Foreign Keys:")
+        fk_lines = []
         for fk_pair in foreign_keys:
             from_col_idx, to_col_idx = fk_pair
 
@@ -57,12 +61,27 @@ def format_schema(db_id: str, tables: Dict) -> str:
             from_table_name = table_names_original[from_table_idx]
             to_table_name = table_names_original[to_table_idx]
 
-            schema_lines.append(f"  - {from_table_name}.{from_col_name} -> {to_table_name}.{to_col_name}")
+            if is_internal_table(from_table_name) or is_internal_table(to_table_name):
+                continue
+            fk_lines.append(f"  - {from_table_name}.{from_col_name} -> {to_table_name}.{to_col_name}")
+        if fk_lines:
+            schema_lines.append("Foreign Keys:")
+            schema_lines.extend(fk_lines)
 
     return "\n".join(schema_lines)
 
 
-def build_prompt(question: str, db_id: str, tables: Dict) -> str:
+def _format_description_section(description_text: str = "") -> str:
+    text = (description_text or "").strip()
+    return f"{text}\n\n" if text else ""
+
+
+def build_prompt(
+    question: str,
+    db_id: str,
+    tables: Dict,
+    description_text: str = "",
+) -> str:
     """
     Build user prompt for SQL generation, including schema and instruction.
 
@@ -73,15 +92,17 @@ def build_prompt(question: str, db_id: str, tables: Dict) -> str:
         question: Natural language question in Vietnamese
         db_id: Database identifier
         tables: Dict loaded from tables.json
+        description_text: Optional precomputed database description
 
     Returns:
         User prompt string (without chat template formatting)
     """
     schema = format_schema(db_id, tables)
+    description_section = _format_description_section(description_text)
 
     prompt = f"""You are an expert SQL developer. Given a database schema and a natural language question, generate a valid SQL query.
 
-{schema}
+{description_section}{schema}
 
 Question: {question}
 
@@ -91,25 +112,34 @@ The query should be syntactically correct and answer the question."""
     return prompt
 
 
-def build_prompt_augmented(question: str, db_id: str, tables: Dict, hints: List[Dict]) -> str:
-    """Build the Text-to-SQL prompt with optional table-level hints."""
+def build_prompt_augmented(
+    question: str,
+    db_id: str,
+    tables: Dict,
+    hints: List[Dict],
+    description_text: str = "",
+) -> str:
+    """Build the Text-to-SQL prompt with optional schema item hints."""
     if not hints:
-        return build_prompt(question, db_id, tables)
+        return build_prompt(question, db_id, tables, description_text=description_text)
 
     schema = format_schema(db_id, tables)
-    hint_lines = [
-        f'  - "{hint["vi_noun"]}" → table: {hint["table"]}'
-        for hint in hints
-    ]
+    description_section = _format_description_section(description_text)
+    hint_lines = []
+    for hint in hints:
+        if hint.get("column"):
+            hint_lines.append(f'  - "{hint["vi_noun"]}" → {hint["table"]}.{hint["column"]}')
+        else:
+            hint_lines.append(f'  - "{hint["vi_noun"]}" → table: {hint["table"]}')
     hints_section = (
-        "\nThe following Vietnamese terms map to these tables:\n"
+        "\nThe following Vietnamese terms map to these schema items:\n"
         + "\n".join(hint_lines)
         + "\n"
     )
 
     prompt = f"""You are an expert SQL developer. Given a database schema and a natural language question, generate a valid SQL query.
 
-{schema}
+{description_section}{schema}
 {hints_section}
 Question: {question}
 

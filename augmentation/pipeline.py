@@ -1,10 +1,14 @@
-from typing import Dict, List, Tuple
+from collections import Counter
+from typing import Dict, List, Optional, Tuple
 
-from augmentation.pos_filter import extract_noun_candidates
-from augmentation.schema_nouns import extract_schema_nouns
+from augmentation.pos_filter import extract_noun_candidates, filter_nouns_with_stats
+from augmentation.schema_nouns import schema_name_set
 from augmentation.similarity import (
     DEFAULT_EMBEDDING_MODEL,
-    compute_matches,
+    build_matching_targets,
+    build_rich_targets,
+    compute_target_matches,
+    document_prefix_for_model,
     encode_texts,
     get_encoder,
     query_prefix_for_model,
@@ -19,16 +23,16 @@ def dedupe_and_limit_hints(
     hints: List[Dict],
     max_hints: int = MAX_HINTS_PER_QUESTION,
 ) -> List[Dict]:
-    """Keep the strongest noun match for each table and cap hints per question."""
-    best_by_table: Dict[str, Dict] = {}
+    """Keep the strongest noun match for each schema target and cap hints."""
+    best_by_target: Dict[Tuple[str, str], Dict] = {}
     for hint in hints:
-        table = hint["table"]
-        current = best_by_table.get(table)
+        target = (hint["table"], hint.get("column") or "")
+        current = best_by_target.get(target)
         if current is None or hint["similarity"] > current["similarity"]:
-            best_by_table[table] = hint
+            best_by_target[target] = hint
 
     deduped = sorted(
-        best_by_table.values(),
+        best_by_target.values(),
         key=lambda item: item["similarity"],
         reverse=True,
     )
@@ -40,31 +44,65 @@ def augment_examples(
     tables: Dict,
     model_name: str = DEFAULT_EMBEDDING_MODEL,
     threshold: float = 0.4,
+    schema_desc: Optional[Dict] = None,
 ) -> Tuple[List[List[Dict]], Dict]:
-    """Create table-level schema hints for ViSpider examples."""
+    """Create table/column-level schema hints for ViSpider examples."""
     print(f"[Augmentation] Loading encoder: {model_name}")
     encoder = get_encoder(model_name)
 
     print(f"[Augmentation] Extracting noun candidates from {len(examples)} questions...")
-    noun_candidates_per_example = [
+    raw_noun_candidates_per_example = [
         extract_noun_candidates(example["question_vi"])
         for example in examples
     ]
+    schema_names_by_db = {
+        db_id: schema_name_set(tables[db_id])
+        for db_id in {example["db_id"] for example in examples}
+    }
+    filter_stats = Counter(
+        {
+            "total_nouns_before_filter": 0,
+            "english_nouns_removed": 0,
+            "vietnamese_stopwords_removed": 0,
+            "schema_name_duplicates_removed": 0,
+            "too_short_removed": 0,
+            "too_long_removed": 0,
+            "nouns_after_filter": 0,
+        }
+    )
+    removed_stopwords = Counter()
+    noun_candidates_per_example = []
+    for example, candidates in zip(examples, raw_noun_candidates_per_example):
+        filtered, stats = filter_nouns_with_stats(
+            candidates,
+            schema_names_by_db[example["db_id"]],
+        )
+        noun_candidates_per_example.append(filtered)
+        for key, value in stats.items():
+            if key == "top_removed_stopwords":
+                removed_stopwords.update(value)
+            else:
+                filter_stats[key] += value
 
     db_ids = sorted({example["db_id"] for example in examples})
     schema_embedding_cache = {}
-    print(f"[Augmentation] Encoding table candidates for {len(db_ids)} databases...")
+    target_mode = "rich schema-description" if schema_desc else "schema identifier"
+    print(f"[Augmentation] Encoding {target_mode} targets for {len(db_ids)} databases...")
     for db_id in db_ids:
-        schema_noun_map = extract_schema_nouns(tables[db_id])
-        table_names = list(schema_noun_map.keys())
-        table_texts = list(schema_noun_map.values())
-        table_embs = encode_texts(
-            table_texts,
+        targets = (
+            build_rich_targets(schema_desc, db_id, tables[db_id])
+            if schema_desc
+            else build_matching_targets(tables[db_id], db_id)
+        )
+        target_texts = [target["text"] for target in targets]
+        target_embs = encode_texts(
+            target_texts,
             encoder,
+            prefix=document_prefix_for_model(model_name),
             task="document",
             model_name=model_name,
         )
-        schema_embedding_cache[db_id] = (table_names, table_embs)
+        schema_embedding_cache[db_id] = (targets, target_embs)
 
     flat_candidates = []
     for candidates in noun_candidates_per_example:
@@ -97,22 +135,28 @@ def augment_examples(
             hints_per_example.append([])
             continue
 
-        table_names, table_embs = schema_embedding_cache[example["db_id"]]
+        targets, target_embs = schema_embedding_cache[example["db_id"]]
         candidate_indexes = [candidate_to_idx[candidate] for candidate in candidates]
-        raw_hints = compute_matches(
-            noun_x_texts=candidates,
-            noun_x_embs=unique_embs[candidate_indexes],
-            table_names=table_names,
-            table_embs=table_embs,
+        raw_hints = compute_target_matches(
+            noun_texts=candidates,
+            noun_embs=unique_embs[candidate_indexes],
+            targets=targets,
+            target_embs=target_embs,
             threshold=threshold,
         )
         hints = dedupe_and_limit_hints(raw_hints)
         hints_per_example.append(hints)
+
+    aggregate_filter_stats = dict(filter_stats)
+    aggregate_filter_stats["top_removed_stopwords"] = dict(
+        removed_stopwords.most_common(10)
+    )
 
     stats = build_augment_stats(
         hints_per_example=hints_per_example,
         noun_candidates_per_example=noun_candidates_per_example,
         model_name=model_name,
         threshold=threshold,
+        filter_stats=aggregate_filter_stats,
     )
     return hints_per_example, stats

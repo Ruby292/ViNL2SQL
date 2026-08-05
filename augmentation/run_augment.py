@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -16,6 +17,11 @@ def parse_args():
     parser.add_argument("--limit", type=int)
     parser.add_argument("--model", default=DEFAULT_EMBEDDING_MODEL)
     parser.add_argument("--threshold", type=float, default=0.4)
+    parser.add_argument(
+        "--schema-desc",
+        default=None,
+        help="Path to schema_description_20db.json for rich Vietnamese targets",
+    )
     parser.add_argument("--output", required=True)
     parser.add_argument("--stats-output")
     return parser.parse_args()
@@ -26,6 +32,12 @@ def main() -> int:
 
     examples = load_dataset(args.dataset, args.split)
     tables = load_tables()
+    schema_desc = None
+    if args.schema_desc:
+        schema_desc_path = Path(args.schema_desc)
+        with open(schema_desc_path, "r", encoding="utf-8") as handle:
+            schema_desc = json.load(handle)
+        print(f"[Augmentation] Loaded schema descriptions from {schema_desc_path}")
 
     if args.limit:
         print(f"[Augmentation] Limiting to first {args.limit} examples (smoke test)")
@@ -36,6 +48,7 @@ def main() -> int:
         tables=tables,
         model_name=args.model,
         threshold=args.threshold,
+        schema_desc=schema_desc,
     )
     cleanup_encoder(args.model)
 

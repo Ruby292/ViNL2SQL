@@ -6,7 +6,52 @@ from unittest.mock import patch
 import numpy as np
 
 from augmentation import similarity
-from augmentation.similarity import compute_matches, encode_texts, get_encoder
+from augmentation.similarity import (
+    build_matching_targets,
+    build_rich_targets,
+    compute_matches,
+    compute_target_matches,
+    document_prefix_for_model,
+    encode_texts,
+    get_encoder,
+    query_prefix_for_model,
+)
+
+
+MATCH_SCHEMA = {
+    "table_names_original": [
+        "singer",
+        "concert",
+        "singer_in_concert",
+        "Ref_Template_Types",
+    ],
+    "column_names_original": [
+        [-1, "*"],
+        [0, "Singer_ID"],
+        [0, "Name"],
+        [0, "Country"],
+        [1, "Concert_ID"],
+        [1, "Venue"],
+        [2, "Singer_ID"],
+        [2, "Concert_ID"],
+        [3, "Template_Type_ID"],
+        [3, "Template_Type_Description"],
+    ],
+    "column_types": [
+        "text",
+        "number",
+        "text",
+        "text",
+        "number",
+        "text",
+        "number",
+        "number",
+        "number",
+        "text",
+    ],
+    "primary_keys": [1, 4, 8],
+    "foreign_keys": [[6, 1], [7, 4]],
+}
 
 
 class SimilarityTests(unittest.TestCase):
@@ -55,6 +100,122 @@ class SimilarityTests(unittest.TestCase):
             threshold=0.8,
         )
         self.assertEqual(matches, [])
+
+    def test_build_matching_targets_adds_column_targets_and_skips_pure_ids(self):
+        targets = build_matching_targets(MATCH_SCHEMA, "concert_singer")
+        target_by_key = {
+            (target["table"], target.get("column")): target
+            for target in targets
+        }
+
+        self.assertEqual(target_by_key[("singer", None)]["text"], "singer")
+        self.assertEqual(target_by_key[("singer", "Name")]["text"], "singer Name")
+        self.assertEqual(target_by_key[("singer", "Name")]["table_type"], "entity")
+        self.assertEqual(
+            target_by_key[("singer_in_concert", None)]["table_type"],
+            "junction",
+        )
+        self.assertEqual(
+            target_by_key[("Ref_Template_Types", None)]["table_type"],
+            "reference",
+        )
+        self.assertNotIn(("singer", "Singer_ID"), target_by_key)
+        self.assertNotIn(("singer_in_concert", "Singer_ID"), target_by_key)
+        self.assertNotIn(("Ref_Template_Types", "Template_Type_ID"), target_by_key)
+
+    def test_build_rich_targets_uses_descriptions_and_skips_pure_pk_descriptions(self):
+        schema_desc = {
+            "concert_singer": {
+                "tables": {
+                    "singer": {
+                        "description": "Thông tin ca sĩ.",
+                        "columns": {
+                            "Singer_ID": "PK. Định danh ca sĩ.",
+                            "Name": "Tên ca sĩ.",
+                            "Country": "Quốc gia của ca sĩ.",
+                        },
+                    },
+                    "concert": {
+                        "description": "Thông tin buổi hòa nhạc.",
+                        "columns": {
+                            "Concert_ID": "PK. Định danh concert.",
+                            "Venue": "Địa điểm tổ chức.",
+                        },
+                    },
+                },
+            }
+        }
+
+        targets = build_rich_targets(schema_desc, "concert_singer", MATCH_SCHEMA)
+        target_by_key = {
+            (target["table"], target.get("column")): target
+            for target in targets
+        }
+
+        self.assertIn("Thông tin ca sĩ.", target_by_key[("singer", None)]["text"])
+        self.assertEqual(
+            target_by_key[("singer", "Name")]["text"],
+            "singer Name Tên ca sĩ.",
+        )
+        self.assertNotIn(("singer", "Singer_ID"), target_by_key)
+        self.assertNotIn(("concert", "Concert_ID"), target_by_key)
+
+    def test_build_rich_targets_falls_back_to_raw_targets_for_missing_db(self):
+        targets = build_rich_targets({}, "concert_singer", MATCH_SCHEMA)
+        target_by_key = {
+            (target["table"], target.get("column")): target
+            for target in targets
+        }
+
+        self.assertEqual(target_by_key[("singer", None)]["text"], "singer")
+        self.assertEqual(target_by_key[("singer", "Name")]["text"], "singer Name")
+
+    def test_compute_target_matches_applies_table_type_priority(self):
+        targets = [
+            {
+                "text": "singer Name",
+                "table": "singer",
+                "column": "Name",
+                "table_type": "entity",
+            },
+            {
+                "text": "Ref_Template_Types Template_Type_Description",
+                "table": "Ref_Template_Types",
+                "column": "Template_Type_Description",
+                "table_type": "reference",
+            },
+        ]
+        noun_embs = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
+        target_embs = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
+
+        matches = compute_target_matches(
+            ["tên", "loại"],
+            noun_embs,
+            targets,
+            target_embs,
+            threshold=0.75,
+        )
+
+        self.assertEqual(
+            matches,
+            [
+                {
+                    "vi_noun": "tên",
+                    "table": "singer",
+                    "column": "Name",
+                    "similarity": 1.0,
+                    "table_type": "entity",
+                }
+            ],
+        )
+
+    def test_prefixes_follow_e5_query_and_passage_format(self):
+        e5_model = "intfloat/multilingual-e5-large-instruct"
+
+        self.assertEqual(query_prefix_for_model(e5_model), "query: ")
+        self.assertEqual(document_prefix_for_model(e5_model), "passage: ")
+        self.assertEqual(query_prefix_for_model("google/embeddinggemma-300m"), "")
+        self.assertEqual(document_prefix_for_model("google/embeddinggemma-300m"), "")
 
     def test_get_encoder_caches_sentence_transformer(self):
         created = []

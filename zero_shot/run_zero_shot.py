@@ -8,6 +8,7 @@ from typing import Dict, List, Tuple
 from tqdm import tqdm
 
 from augmentation.similarity import DEFAULT_EMBEDDING_MODEL
+from descriptions.loader import DEFAULT_DESCRIPTIONS_DIR, DescriptionLoader
 from shared.spider_eval import (
     parse_gold_file,
     parse_pred_file,
@@ -60,6 +61,21 @@ def parse_args():
     parser.add_argument("--augment-threshold", type=float, default=0.4)
     parser.add_argument("--augment-model", default=DEFAULT_EMBEDDING_MODEL)
     parser.add_argument("--augment-stats-output")
+    parser.add_argument(
+        "--descriptions-dir",
+        default=str(DEFAULT_DESCRIPTIONS_DIR),
+        help="Directory of precomputed database description JSON files",
+    )
+    parser.add_argument(
+        "--descriptions-file",
+        default=None,
+        help="Aggregate database description JSON file to load instead of description_db.json",
+    )
+    parser.add_argument(
+        "--no-descriptions",
+        action="store_true",
+        help="Disable database description prompt augmentation",
+    )
     return parser.parse_args()
 
 
@@ -116,18 +132,33 @@ def run_inference_batch(
     examples: List[Dict],
     tables: Dict,
     hints_per_example: List[List[Dict]] = None,
+    description_loader: DescriptionLoader = None,
 ):
     print(f"Building prompts for {len(examples)} examples...")
     tokenizer = llm.get_tokenizer()
     prompts = []
 
     for idx, example in enumerate(tqdm(examples, desc="Building prompts")):
+        description_text = (
+            description_loader.format_for_prompt(example["db_id"])
+            if description_loader is not None
+            else ""
+        )
         if hints_per_example is not None:
             user_prompt = build_prompt_augmented(
-                example["question_vi"], example["db_id"], tables, hints_per_example[idx]
+                example["question_vi"],
+                example["db_id"],
+                tables,
+                hints_per_example[idx],
+                description_text=description_text,
             )
         else:
-            user_prompt = build_prompt(example["question_vi"], example["db_id"], tables)
+            user_prompt = build_prompt(
+                example["question_vi"],
+                example["db_id"],
+                tables,
+                description_text=description_text,
+            )
 
         messages = [
             {"role": "system", "content": "You are a helpful SQL expert."},
@@ -200,6 +231,23 @@ def run_inference_mode(args) -> int:
     write_lines(gold_path, [f"{sql}\t{db_id}" for sql, db_id in gold_data])
     tables = load_tables()
     hints_per_example = None
+    description_loader = (
+        None
+        if args.no_descriptions
+        else DescriptionLoader(args.descriptions_dir, args.descriptions_file)
+    )
+    examples_with_descriptions = 0
+    if description_loader is not None:
+        examples_with_descriptions = sum(
+            1
+            for example in examples
+            if description_loader.format_for_prompt(example["db_id"])
+        )
+        print(
+            f"Loaded database descriptions for "
+            f"{examples_with_descriptions}/{len(examples)} examples "
+            f"from {description_loader.source_path}"
+        )
 
     if args.hints_input:
         if args.augment:
@@ -229,7 +277,7 @@ def run_inference_mode(args) -> int:
             raise ValueError(
                 f"Hints file {args.hints_input} uses an unsupported hint format "
                 f"at index {bad_index}: {bad_hint}. Regenerate hints with the "
-                "table-level augmentation pipeline."
+                "schema-item augmentation pipeline."
             )
         hints_per_example = [hints_map.get(i, []) for i in range(len(examples))]
         print(f"Loaded hints for {len(hints_map)} examples from {args.hints_input}")
@@ -262,7 +310,12 @@ def run_inference_mode(args) -> int:
         args.model, args.max_model_len, args.gpu_memory_utilization
     )
     predictions, raw_outputs = run_inference_batch(
-        llm, sampling_params, examples, tables, hints_per_example
+        llm,
+        sampling_params,
+        examples,
+        tables,
+        hints_per_example,
+        description_loader=description_loader,
     )
     write_lines(pred_path, predictions)
     print(f"Predictions saved to {pred_path}")
@@ -324,6 +377,20 @@ def run_inference_mode(args) -> int:
                         if hints_per_example is not None
                         else 0
                     ),
+                },
+                "database_descriptions": {
+                    "enabled": description_loader is not None,
+                    "descriptions_dir": (
+                        args.descriptions_dir
+                        if description_loader is not None
+                        else None
+                    ),
+                    "descriptions_file": (
+                        str(description_loader.source_path)
+                        if description_loader is not None
+                        else None
+                    ),
+                    "examples_with_descriptions": examples_with_descriptions,
                 },
             },
             "by_difficulty": {
@@ -411,6 +478,8 @@ def run_exec_mode(args) -> int:
         summary["exact_match"] = em_summary["exact_match"]
     if em_summary and em_summary.get("augmentation"):
         summary["augmentation"] = em_summary["augmentation"]
+    if em_summary and em_summary.get("database_descriptions"):
+        summary["database_descriptions"] = em_summary["database_descriptions"]
 
     output_data = {"summary": summary}
     if em_summary is not None:

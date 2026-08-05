@@ -16,10 +16,13 @@ GPU_MEM_UTIL="${GPU_MEM_UTIL:-0.85}"
 LIMIT="${LIMIT:-}"
 SIZES="${SIZES:-0_5B 1_5B 3B 7B}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"
-AUGMENT_THRESHOLD="${AUGMENT_THRESHOLD:-0.4}"
+DESCRIPTIONS_FILE="${DESCRIPTIONS_FILE:-}"
+NO_DESCRIPTIONS="${NO_DESCRIPTIONS:-0}"
+AUGMENT_THRESHOLD="${AUGMENT_THRESHOLD:-0.85}"
 RUN_BASELINE="${RUN_BASELINE:-1}"
 RUN_AUG="${RUN_AUG:-1}"
-HINTS_ROOT="${HINTS_ROOT:-augmentation/results_embeddinggemma}"
+HINTS_ROOT="${HINTS_ROOT:-augmentation/result_with_stop_words}"
+HINTS_SUFFIX="${HINTS_SUFFIX:-_e5}"
 AUGMENT_HINTS_INPUT="${AUGMENT_HINTS_INPUT:-}"
 
 BASELINE_ROOT="zero_shot/results/qwen_compare"
@@ -63,13 +66,18 @@ run_model_variant() {
   echo "============================================================"
   echo " [${variant_label}] Running ${tag}: ${model_id}"
   echo " -> ${outdir}"
+  if [[ -n "$DESCRIPTIONS_FILE" ]]; then
+    echo " desc -> ${DESCRIPTIONS_FILE}"
+  elif [[ "$NO_DESCRIPTIONS" == "1" ]]; then
+    echo " desc -> disabled"
+  fi
   echo "============================================================"
 
   local hints_path=""
   if [[ "$augment_enabled" == "1" ]]; then
     hints_path="$AUGMENT_HINTS_INPUT"
     if [[ -z "$hints_path" ]]; then
-      hints_path="${HINTS_ROOT}/${SPLIT}_$(threshold_tag "$AUGMENT_THRESHOLD")/hints.json"
+      hints_path="${HINTS_ROOT}/${SPLIT}_$(threshold_tag "$AUGMENT_THRESHOLD")${HINTS_SUFFIX}/hints.json"
     fi
     if [[ ! -f "$hints_path" ]]; then
       echo "!! Missing precomputed hints file: ${hints_path}"
@@ -90,6 +98,12 @@ run_model_variant() {
         --gold-output "$gold_path"
         --max-model-len "$MAX_MODEL_LEN"
         --gpu-memory-utilization "$GPU_MEM_UTIL")
+
+  if [[ -n "$DESCRIPTIONS_FILE" ]]; then
+    inf_cmd+=(--descriptions-file "$DESCRIPTIONS_FILE")
+  elif [[ "$NO_DESCRIPTIONS" == "1" ]]; then
+    inf_cmd+=(--no-descriptions)
+  fi
 
   if [[ -n "$LIMIT" ]]; then
     inf_cmd+=(--limit "$LIMIT")

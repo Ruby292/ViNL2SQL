@@ -7,12 +7,15 @@ set -euo pipefail
 DATASET="${DATASET:-vispider}"
 SPLIT="${SPLIT:-dev}"
 SIZES="${SIZES:-0_5B 1_5B 3B 7B}"
-THRESHOLDS="${THRESHOLDS:-0.40 0.45}"
+THRESHOLDS="${THRESHOLDS:-0.82 0.85 0.87 0.90}"
 MAX_MODEL_LEN="${MAX_MODEL_LEN:-4096}"
 GPU_MEM_UTIL="${GPU_MEM_UTIL:-0.85}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"
+DESCRIPTIONS_FILE="${DESCRIPTIONS_FILE:-}"
+NO_DESCRIPTIONS="${NO_DESCRIPTIONS:-0}"
 LIMIT="${LIMIT:-}"
-HINTS_ROOT="${HINTS_ROOT:-augmentation/results_embeddinggemma}"
+HINTS_ROOT="${HINTS_ROOT:-augmentation/result_with_stop_words}"
+HINTS_SUFFIX="${HINTS_SUFFIX:-_e5}"
 RESULT_ROOT="${RESULT_ROOT:-zero_shot/results/qwen_threshold_sweep/${SPLIT}}"
 PRIMARY_METRIC="${PRIMARY_METRIC:-execution_accuracy}"
 
@@ -39,7 +42,7 @@ run_one() {
   local tag="$2"
   local size="$3"
   local model_id="$4"
-  local hints_path="${HINTS_ROOT}/${SPLIT}_${tag}/hints.json"
+  local hints_path="${HINTS_ROOT}/${SPLIT}_${tag}${HINTS_SUFFIX}/hints.json"
   local outdir="${RESULT_ROOT}/${tag}/${size}"
 
   if [[ ! -f "$hints_path" ]]; then
@@ -61,6 +64,11 @@ run_one() {
   echo " mode  -> precomputed hints (--hints-input only)"
   echo " hints -> ${hints_path}"
   echo " out   -> ${outdir}"
+  if [[ -n "$DESCRIPTIONS_FILE" ]]; then
+    echo " desc  -> ${DESCRIPTIONS_FILE}"
+  elif [[ "$NO_DESCRIPTIONS" == "1" ]]; then
+    echo " desc  -> disabled"
+  fi
   echo "============================================================"
 
   local inf_cmd=(python -m zero_shot.run_zero_shot
@@ -75,6 +83,12 @@ run_one() {
     --gold-output "$gold_path"
     --max-model-len "$MAX_MODEL_LEN"
     --gpu-memory-utilization "$GPU_MEM_UTIL")
+
+  if [[ -n "$DESCRIPTIONS_FILE" ]]; then
+    inf_cmd+=(--descriptions-file "$DESCRIPTIONS_FILE")
+  elif [[ "$NO_DESCRIPTIONS" == "1" ]]; then
+    inf_cmd+=(--no-descriptions)
+  fi
 
   if [[ -n "$LIMIT" ]]; then
     inf_cmd+=(--limit "$LIMIT")
@@ -94,9 +108,9 @@ run_one() {
     --predictions-input "$pred_path"
     --gold-input "$gold_path"
     --em-input "$em_path"
-    --output "$ex_path"
-    --exec-details-output "$details_path"
-    --timeout-seconds "$TIMEOUT_SECONDS")
+        --output "$ex_path"
+        --exec-details-output "$details_path"
+        --timeout-seconds "$TIMEOUT_SECONDS")
 
   echo "" | tee -a "$log_path"
   echo "[Phase 2] Execution accuracy" | tee -a "$log_path"

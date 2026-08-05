@@ -8,8 +8,20 @@ class AugmentStatsTests(unittest.TestCase):
         stats = build_augment_stats(
             hints_per_example=[
                 [
-                    {"vi_noun": "tên", "table": "Singer", "similarity": 0.81},
-                    {"vi_noun": "quốc gia", "table": "Country", "similarity": 0.96},
+                    {
+                        "vi_noun": "tên",
+                        "table": "Singer",
+                        "column": "Name",
+                        "similarity": 0.81,
+                        "table_type": "entity",
+                    },
+                    {
+                        "vi_noun": "quốc gia",
+                        "table": "Country",
+                        "column": None,
+                        "similarity": 0.96,
+                        "table_type": "reference",
+                    },
                 ],
                 [],
             ],
@@ -19,6 +31,16 @@ class AugmentStatsTests(unittest.TestCase):
             ],
             model_name="fake-e5",
             threshold=0.8,
+            filter_stats={
+                "total_nouns_before_filter": 5,
+                "english_nouns_removed": 1,
+                "vietnamese_stopwords_removed": 1,
+                "schema_name_duplicates_removed": 0,
+                "too_short_removed": 0,
+                "too_long_removed": 0,
+                "nouns_after_filter": 4,
+                "top_removed_stopwords": {"tên": 1},
+            },
         )
 
         self.assertEqual(stats["config"], {"model": "fake-e5", "threshold": 0.8})
@@ -37,6 +59,27 @@ class AugmentStatsTests(unittest.TestCase):
                 {"noun": "ca sĩ", "occurrences": 1},
                 {"noun": "album", "occurrences": 1},
             ],
+        )
+        self.assertEqual(
+            stats["filter_stats"],
+            {
+                "total_nouns_before_filter": 5,
+                "english_nouns_removed": 1,
+                "vietnamese_stopwords_removed": 1,
+                "schema_name_duplicates_removed": 0,
+                "too_short_removed": 0,
+                "too_long_removed": 0,
+                "nouns_after_filter": 4,
+                "top_removed_stopwords": {"tên": 1},
+            },
+        )
+        self.assertEqual(
+            stats["table_type_distribution"],
+            {"entity": 1, "reference": 1, "junction": 0},
+        )
+        self.assertEqual(
+            stats["match_level"],
+            {"table_level": 1, "column_level": 1},
         )
 
 

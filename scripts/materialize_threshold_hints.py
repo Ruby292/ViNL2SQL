@@ -1,15 +1,17 @@
 import argparse
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from augmentation.pos_filter import extract_noun_candidates
+from augmentation.pos_filter import extract_noun_candidates, filter_nouns_with_stats
+from augmentation.schema_nouns import schema_name_set
 from augmentation.stats import build_augment_stats
-from zero_shot.common import load_dataset, write_json
+from zero_shot.common import load_dataset, load_tables, write_json
 
 
 def threshold_tag(value: float) -> str:
@@ -30,9 +32,53 @@ def parse_args():
     parser.add_argument("--source-hints", required=True)
     parser.add_argument("--source-stats")
     parser.add_argument("--output-root", default="augmentation/results_embeddinggemma")
+    parser.add_argument(
+        "--output-suffix",
+        default="",
+        help="Suffix appended to threshold directories, for example _e5.",
+    )
     parser.add_argument("--thresholds", nargs="+", type=float, default=[0.40, 0.45])
     parser.add_argument("--model-name")
     return parser.parse_args()
+
+
+def collect_filtered_nouns(examples, tables):
+    schema_names_by_db = {
+        db_id: schema_name_set(tables[db_id])
+        for db_id in {example["db_id"] for example in examples}
+    }
+    filter_stats = Counter(
+        {
+            "total_nouns_before_filter": 0,
+            "english_nouns_removed": 0,
+            "vietnamese_stopwords_removed": 0,
+            "schema_name_duplicates_removed": 0,
+            "too_short_removed": 0,
+            "too_long_removed": 0,
+            "nouns_after_filter": 0,
+        }
+    )
+    removed_stopwords = Counter()
+    noun_candidates_per_example = []
+
+    for example in examples:
+        raw_candidates = extract_noun_candidates(example["question_vi"])
+        filtered, stats = filter_nouns_with_stats(
+            raw_candidates,
+            schema_names_by_db[example["db_id"]],
+        )
+        noun_candidates_per_example.append(filtered)
+        for key, value in stats.items():
+            if key == "top_removed_stopwords":
+                removed_stopwords.update(value)
+            else:
+                filter_stats[key] += value
+
+    aggregate_filter_stats = dict(filter_stats)
+    aggregate_filter_stats["top_removed_stopwords"] = dict(
+        removed_stopwords.most_common(10)
+    )
+    return noun_candidates_per_example, aggregate_filter_stats
 
 
 def main() -> int:
@@ -58,15 +104,13 @@ def main() -> int:
             f"Source hints count ({len(source_hints)}) != example count ({len(examples)})"
         )
 
-    noun_candidates_per_example = [
-        extract_noun_candidates(example["question_vi"])
-        for example in examples
-    ]
+    tables = load_tables()
+    noun_candidates_per_example, filter_stats = collect_filtered_nouns(examples, tables)
 
     output_root = Path(args.output_root)
     for threshold in args.thresholds:
         tag = threshold_tag(threshold)
-        out_dir = output_root / f"{args.split}_{tag}"
+        out_dir = output_root / f"{args.split}_{tag}{args.output_suffix}"
 
         output_items = []
         hints_per_example = []
@@ -91,6 +135,7 @@ def main() -> int:
             noun_candidates_per_example=noun_candidates_per_example,
             model_name=model_name,
             threshold=threshold,
+            filter_stats=filter_stats,
         )
 
         hints_path = out_dir / "hints.json"

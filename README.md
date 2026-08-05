@@ -128,11 +128,13 @@ Augmentation tạo schema hints cho từng câu hỏi tiếng Việt trước kh
 question_vi
   -> underthesea POS tag
   -> danh từ/cụm danh từ tiếng Việt
+  -> lọc English/schema-name/độ dài
   -> encode bằng intfloat/multilingual-e5-large-instruct
-  -> so với table-level text từ tables.json
-  -> giữ top-1 table match cho mỗi danh từ nếu similarity >= threshold
-  -> dedupe theo table và giữ tối đa 3 hints/câu hỏi
-  -> thêm vào prompt dạng "danh từ" -> table: Table
+  -> so với table-level + column-level targets từ tables.json
+  -> nếu có schema description: dùng mô tả tiếng Việt làm target text
+  -> ưu tiên entity table hơn reference/junction table
+  -> dedupe theo schema target và giữ tối đa 3 hints/câu hỏi
+  -> thêm vào prompt dạng "danh từ" -> Table.column hoặc table: Table
 ```
 
 Chạy augmentation riêng để tạo `hints.json` và `augment_stats.json`:
@@ -143,9 +145,13 @@ python -m augmentation.run_augment \
   --split dev \
   --limit 20 \
   --threshold 0.8 \
+  --schema-desc descriptions/db_descriptions/schema_description_20db.json \
   --output augmentation/results/smoke/hints.json \
   --stats-output augmentation/results/smoke/augment_stats.json
 ```
+
+Bỏ `--schema-desc` nếu muốn target chỉ dựa vào tên bảng/cột gốc trong
+`tables.json`.
 
 `hints.json` có dạng:
 
@@ -159,6 +165,7 @@ python -m augmentation.run_augment \
       {
         "vi_noun": "ca sĩ",
         "table": "singer",
+        "column": "Name",
         "similarity": 0.8123
       }
     ]
@@ -166,7 +173,9 @@ python -m augmentation.run_augment \
 ]
 ```
 
-`augment_stats.json` lưu config, số example có hint, phân phối similarity, và top danh từ chưa match.
+`augment_stats.json` lưu config, số example có hint, phân phối similarity,
+top danh từ chưa match, filter stats, phân phối loại bảng, và tỷ lệ
+table-level/column-level hint.
 
 Có 2 cách dùng augmentation trong Phase 1:
 
@@ -282,6 +291,56 @@ TIMEOUT_SECONDS=60 bash scripts/run_qwen_compare.sh
 
 ```bash
 SPLIT=dev bash scripts/run_qwen_compare.sh
+```
+
+## Chạy schema description only
+
+Biến thể này chỉ thêm mô tả schema từ
+`descriptions/db_descriptions/schema_description_20db.json` vào prompt. Không
+chạy contextual augmentation và không dùng `hints.json`.
+
+Smoke test trước khi thuê server chạy full:
+
+```bash
+LIMIT=20 SIZES="0_5B" bash scripts/run_qwen_schema_description.sh
+```
+
+Chạy full ViSpider dev cho 4 model Qwen:
+
+```bash
+bash scripts/run_qwen_schema_description.sh
+```
+
+Script mặc định chạy:
+
+```text
+Qwen/Qwen2.5-Coder-0.5B-Instruct
+Qwen/Qwen2.5-Coder-1.5B-Instruct
+Qwen/Qwen2.5-Coder-3B-Instruct
+Qwen/Qwen2.5-Coder-7B-Instruct
+```
+
+Output nằm ở:
+
+```text
+zero_shot/results/qwen_schema_description/dev/<size>/
+├── predictions.txt
+├── gold.txt
+├── eval_em_only.json
+├── exec_details.json
+├── eval_ex.json
+└── run.log
+
+zero_shot/results/qwen_schema_description/dev/summary.log
+zero_shot/results/qwen_schema_description/dev/summary.json
+```
+
+Đổi file description hoặc chọn model:
+
+```bash
+DESCRIPTION_FILE=descriptions/db_descriptions/schema_description_20db.json \
+SIZES="3B 7B" \
+bash scripts/run_qwen_schema_description.sh
 ```
 
 ## Output structure

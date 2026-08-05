@@ -1,0 +1,1048 @@
+{
+  "concert_singer": {
+    "db_description": "Quản lý ca sĩ, buổi hòa nhạc và sân vận động tổ chức.",
+    "tables": {
+      "stadium": {
+        "description": "Sân vận động tổ chức hòa nhạc.",
+        "columns": {
+          "Stadium_ID": "PK. Mã sân vận động (int).",
+          "Location": "Địa điểm/đội chủ quản sân. VD: 'Raith Rovers', 'Ayr United'.",
+          "Name": "Tên sân vận động. VD: 'Stark's Park', 'Somerset Park'.",
+          "Capacity": "Sức chứa tối đa (int). VD: 10104.",
+          "Highest": "Lượng khán giả cao nhất từng ghi nhận (int).",
+          "Lowest": "Lượng khán giả thấp nhất từng ghi nhận (int).",
+          "Average": "Lượng khán giả trung bình (int)."
+        }
+      },
+      "singer": {
+        "description": "Thông tin ca sĩ.",
+        "columns": {
+          "Singer_ID": "PK. Mã ca sĩ (int).",
+          "Name": "Tên ca sĩ. VD: 'Joe Sharp', 'Timbaland'.",
+          "Country": "Quốc gia của ca sĩ. VD: 'Netherlands', 'France'.",
+          "Song_Name": "Tên bài hát nổi bật. VD: 'You', 'Dangerous'.",
+          "Song_release_year": "Năm phát hành bài hát (text). VD: '1992', '2008'.",
+          "Age": "Tuổi ca sĩ (int).",
+          "Is_male": "Giới tính nam? Enum: 'T' = nam, 'F' = nữ."
+        }
+      },
+      "concert": {
+        "description": "Thông tin buổi hòa nhạc.",
+        "columns": {
+          "concert_ID": "PK. Mã buổi hòa nhạc (int).",
+          "concert_Name": "Tên buổi hòa nhạc. VD: 'Auditions', 'Super bootcamp'.",
+          "Theme": "Chủ đề buổi diễn. VD: 'Free choice', 'Bleeding Love'.",
+          "Stadium_ID": "FK → stadium.Stadium_ID. Sân vận động tổ chức (text).",
+          "Year": "Năm tổ chức (text). VD: '2014', '2015'."
+        }
+      },
+      "singer_in_concert": {
+        "description": "Bảng liên kết ca sĩ tham gia buổi hòa nhạc (N-N).",
+        "columns": {
+          "concert_ID": "PK, FK → concert.concert_ID. Mã buổi hòa nhạc.",
+          "Singer_ID": "PK, FK → singer.Singer_ID. Mã ca sĩ tham gia."
+        }
+      }
+    },
+    "join_hints": [
+      "concert ↔ stadium: concert.Stadium_ID = stadium.Stadium_ID",
+      "singer_in_concert ↔ concert: singer_in_concert.concert_ID = concert.concert_ID",
+      "singer_in_concert ↔ singer: singer_in_concert.Singer_ID = singer.Singer_ID",
+      "Tìm ca sĩ trong buổi hòa nhạc: singer JOIN singer_in_concert JOIN concert"
+    ]
+  },
+  "pets_1": {
+    "db_description": "Sinh viên và thú cưng của họ.",
+    "tables": {
+      "Student": {
+        "description": "Thông tin sinh viên.",
+        "columns": {
+          "StuID": "PK. Mã sinh viên (int).",
+          "LName": "Họ sinh viên. VD: 'Smith', 'Kim'.",
+          "Fname": "Tên sinh viên. VD: 'Linda', 'Tracy'.",
+          "Age": "Tuổi sinh viên (int).",
+          "Sex": "Giới tính. Enum: 'F' = nữ, 'M' = nam.",
+          "Major": "Mã ngành học (int). VD: 600.",
+          "Advisor": "Mã cố vấn học tập (int).",
+          "city_code": "Mã thành phố. VD: 'BAL', 'HKG', 'WAS'."
+        }
+      },
+      "Pets": {
+        "description": "Thông tin thú cưng.",
+        "columns": {
+          "PetID": "PK. Mã thú cưng (int).",
+          "PetType": "Loại thú cưng. VD: 'cat', 'dog'.",
+          "pet_age": "Tuổi thú cưng (int).",
+          "weight": "Cân nặng thú cưng (float). VD: 12.0."
+        }
+      },
+      "Has_Pet": {
+        "description": "Bảng liên kết sinh viên sở hữu thú cưng (N-N).",
+        "columns": {
+          "StuID": "FK → Student.StuID. Mã sinh viên.",
+          "PetID": "FK → Pets.PetID. Mã thú cưng."
+        }
+      }
+    },
+    "join_hints": [
+      "Student ↔ Pets: Student JOIN Has_Pet ON Student.StuID = Has_Pet.StuID JOIN Pets ON Has_Pet.PetID = Pets.PetID"
+    ]
+  },
+  "car_1": {
+    "db_description": "Dữ liệu ô tô: hãng sản xuất, mẫu xe, thông số kỹ thuật, quốc gia và châu lục.",
+    "tables": {
+      "continents": {
+        "description": "Danh sách châu lục.",
+        "columns": {
+          "ContId": "PK. Mã châu lục (int).",
+          "Continent": "Tên châu lục. VD: 'america', 'europe', 'asia'."
+        }
+      },
+      "countries": {
+        "description": "Danh sách quốc gia.",
+        "columns": {
+          "CountryId": "PK. Mã quốc gia (int).",
+          "CountryName": "Tên quốc gia. VD: 'usa', 'germany', 'france'.",
+          "Continent": "FK → continents.ContId. Mã châu lục chứa quốc gia (int)."
+        }
+      },
+      "car_makers": {
+        "description": "Hãng sản xuất ô tô.",
+        "columns": {
+          "Id": "PK. Mã hãng sản xuất (int).",
+          "Maker": "Tên viết tắt hãng. VD: 'amc', 'volkswagen', 'bmw'.",
+          "FullName": "Tên đầy đủ. VD: 'American Motor Company', 'BMW'.",
+          "Country": "FK → countries.CountryId. Mã quốc gia của hãng (text chứa int)."
+        }
+      },
+      "model_list": {
+        "description": "Danh sách mẫu xe (model) thuộc hãng sản xuất.",
+        "columns": {
+          "ModelId": "PK. Mã mẫu xe (int).",
+          "Maker": "FK → car_makers.Id. Mã hãng sản xuất (int).",
+          "Model": "Tên mẫu xe (UNIQUE). VD: 'amc', 'audi', 'bmw'."
+        }
+      },
+      "car_names": {
+        "description": "Tên cụ thể của từng chiếc xe (bao gồm model + tên chi tiết).",
+        "columns": {
+          "MakeId": "PK. Mã xe cụ thể (int). Cũng là FK → cars_data.Id.",
+          "Model": "FK → model_list.Model. Tên mẫu xe.",
+          "Make": "Tên đầy đủ xe. VD: 'chevrolet chevelle malibu', 'buick skylark 320'."
+        }
+      },
+      "cars_data": {
+        "description": "Thông số kỹ thuật từng xe.",
+        "columns": {
+          "Id": "PK, FK → car_names.MakeId. Mã xe (int).",
+          "MPG": "Số dặm/gallon — mức tiêu hao nhiên liệu (text). VD: '18'.",
+          "Cylinders": "Số xi-lanh (int). VD: 4, 6, 8.",
+          "Edispl": "Dung tích động cơ (float). VD: 307.0.",
+          "Horsepower": "Mã lực (text). VD: '130'.",
+          "Weight": "Trọng lượng xe (int, đơn vị lbs). VD: 3504.",
+          "Accelerate": "Thời gian tăng tốc 0-60 mph (float, giây). VD: 12.0.",
+          "Year": "Năm sản xuất (int). VD: 1970, 1980."
+        }
+      }
+    },
+    "join_hints": [
+      "cars_data ↔ car_names: cars_data.Id = car_names.MakeId",
+      "car_names ↔ model_list: car_names.Model = model_list.Model",
+      "model_list ↔ car_makers: model_list.Maker = car_makers.Id",
+      "car_makers ↔ countries: car_makers.Country = countries.CountryId",
+      "countries ↔ continents: countries.Continent = continents.ContId",
+      "Full chain: cars_data → car_names → model_list → car_makers → countries → continents"
+    ]
+  },
+  "flight_2": {
+    "db_description": "Hãng hàng không, sân bay và chuyến bay nội địa Mỹ.",
+    "tables": {
+      "airlines": {
+        "description": "Thông tin hãng hàng không.",
+        "columns": {
+          "uid": "PK. Mã hãng hàng không (int).",
+          "Airline": "Tên hãng. VD: 'United Airlines', 'Delta Airlines'.",
+          "Abbreviation": "Tên viết tắt. VD: 'UAL', 'Delta'.",
+          "Country": "Quốc gia. VD: 'USA'."
+        }
+      },
+      "airports": {
+        "description": "Thông tin sân bay.",
+        "columns": {
+          "City": "Thành phố đặt sân bay. VD: 'Aberdeen', 'Abilene'.",
+          "AirportCode": "PK. Mã sân bay 3 ký tự. VD: 'APG', 'ABR'.",
+          "AirportName": "Tên sân bay. VD: 'Phillips AAF', 'Municipal'.",
+          "Country": "Quốc gia. VD: 'United States'.",
+          "CountryAbbrev": "Mã quốc gia viết tắt. VD: 'US'."
+        }
+      },
+      "flights": {
+        "description": "Chuyến bay giữa hai sân bay.",
+        "columns": {
+          "Airline": "PK, FK → airlines.uid. Mã hãng hàng không (int).",
+          "FlightNo": "PK. Số hiệu chuyến bay (int).",
+          "SourceAirport": "FK → airports.AirportCode. Mã sân bay đi.",
+          "DestAirport": "FK → airports.AirportCode. Mã sân bay đến."
+        }
+      }
+    },
+    "join_hints": [
+      "flights ↔ airlines: flights.Airline = airlines.uid",
+      "flights ↔ airports (đi): flights.SourceAirport = airports.AirportCode",
+      "flights ↔ airports (đến): flights.DestAirport = airports.AirportCode",
+      "Lưu ý: cần JOIN airports 2 lần (alias) khi cần cả sân bay đi và đến"
+    ]
+  },
+  "employee_hire_evaluation": {
+    "db_description": "Nhân viên, cửa hàng, tuyển dụng và đánh giá thưởng.",
+    "tables": {
+      "employee": {
+        "description": "Thông tin nhân viên.",
+        "columns": {
+          "Employee_ID": "PK. Mã nhân viên (int).",
+          "Name": "Tên nhân viên. VD: 'George Chuter', 'Lee Mears'.",
+          "Age": "Tuổi (int).",
+          "City": "Thành phố. VD: 'Bristol', 'Bath'."
+        }
+      },
+      "shop": {
+        "description": "Thông tin cửa hàng.",
+        "columns": {
+          "Shop_ID": "PK. Mã cửa hàng (int).",
+          "Name": "Tên cửa hàng. VD: 'FC Haka', 'HJK'.",
+          "Location": "Địa điểm. VD: 'Valkeakoski', 'Helsinki'.",
+          "District": "Quận/khu vực. VD: 'Tehtaan kenttä', 'Finnair Stadium'.",
+          "Number_products": "Số lượng sản phẩm (int). VD: 3516.",
+          "Manager_name": "Tên quản lý. VD: 'Olli Huttunen'."
+        }
+      },
+      "hiring": {
+        "description": "Tuyển dụng nhân viên vào cửa hàng.",
+        "columns": {
+          "Shop_ID": "FK → shop.Shop_ID. Mã cửa hàng (int).",
+          "Employee_ID": "PK, FK → employee.Employee_ID. Mã nhân viên (int).",
+          "Start_from": "Năm bắt đầu làm (text). VD: '2009'.",
+          "Is_full_time": "Toàn thời gian? Enum: 'T' = có, 'F' = không."
+        }
+      },
+      "evaluation": {
+        "description": "Đánh giá và thưởng nhân viên theo năm.",
+        "columns": {
+          "Employee_ID": "PK, FK → employee.Employee_ID. Mã nhân viên (text).",
+          "Year_awarded": "PK. Năm nhận thưởng (text). VD: '2011', '2015'.",
+          "Bonus": "Số tiền thưởng (float). VD: 3000.0."
+        }
+      }
+    },
+    "join_hints": [
+      "hiring ↔ employee: hiring.Employee_ID = employee.Employee_ID",
+      "hiring ↔ shop: hiring.Shop_ID = shop.Shop_ID",
+      "evaluation ↔ employee: evaluation.Employee_ID = employee.Employee_ID"
+    ]
+  },
+  "cre_Doc_Template_Mgt": {
+    "db_description": "Quản lý tài liệu, mẫu (template) và đoạn văn (paragraph).",
+    "tables": {
+      "Ref_Template_Types": {
+        "description": "Danh mục loại template.",
+        "columns": {
+          "Template_Type_Code": "PK. Mã loại template (char 15). VD: 'PPT', 'CV', 'AD'.",
+          "Template_Type_Description": "Mô tả loại. VD: 'Presentation', 'CV', 'Advertisement'."
+        }
+      },
+      "Templates": {
+        "description": "Các mẫu tài liệu.",
+        "columns": {
+          "Template_ID": "PK. Mã template (int).",
+          "Version_Number": "Số phiên bản (int).",
+          "Template_Type_Code": "FK → Ref_Template_Types.Template_Type_Code. Mã loại template.",
+          "Date_Effective_From": "Ngày bắt đầu có hiệu lực (datetime).",
+          "Date_Effective_To": "Ngày hết hiệu lực (datetime).",
+          "Template_Details": "Chi tiết template (text)."
+        }
+      },
+      "Documents": {
+        "description": "Tài liệu được tạo từ template.",
+        "columns": {
+          "Document_ID": "PK. Mã tài liệu (int).",
+          "Template_ID": "FK → Templates.Template_ID. Mã template được dùng.",
+          "Document_Name": "Tên tài liệu. VD: 'Introduction of OS'.",
+          "Document_Description": "Mô tả tài liệu.",
+          "Other_Details": "Thông tin khác (nullable)."
+        }
+      },
+      "Paragraphs": {
+        "description": "Đoạn văn bản trong tài liệu.",
+        "columns": {
+          "Paragraph_ID": "PK. Mã đoạn văn (int).",
+          "Document_ID": "FK → Documents.Document_ID. Mã tài liệu chứa đoạn văn.",
+          "Paragraph_Text": "Nội dung đoạn văn.",
+          "Other_Details": "Thông tin khác (nullable)."
+        }
+      }
+    },
+    "join_hints": [
+      "Templates ↔ Ref_Template_Types: Templates.Template_Type_Code = Ref_Template_Types.Template_Type_Code",
+      "Documents ↔ Templates: Documents.Template_ID = Templates.Template_ID",
+      "Paragraphs ↔ Documents: Paragraphs.Document_ID = Documents.Document_ID"
+    ]
+  },
+  "course_teach": {
+    "db_description": "Giáo viên, khóa học và phân công giảng dạy.",
+    "tables": {
+      "teacher": {
+        "description": "Thông tin giáo viên.",
+        "columns": {
+          "Teacher_ID": "PK. Mã giáo viên (int).",
+          "Name": "Tên giáo viên. VD: 'Joseph Huts'.",
+          "Age": "Tuổi (text). VD: '32'.",
+          "Hometown": "Quê quán. VD: 'Blackrod Urban District'."
+        }
+      },
+      "course": {
+        "description": "Thông tin khóa học.",
+        "columns": {
+          "Course_ID": "PK. Mã khóa học (int).",
+          "Staring_Date": "Ngày bắt đầu (text). VD: '5 May', '6 May'.",
+          "Course": "Tên khóa học. VD: 'Language Arts', 'Math', 'Science'."
+        }
+      },
+      "course_arrange": {
+        "description": "Phân công giáo viên dạy khóa học theo lớp/khối.",
+        "columns": {
+          "Course_ID": "PK, FK → course.Course_ID. Mã khóa học.",
+          "Teacher_ID": "PK, FK → teacher.Teacher_ID. Mã giáo viên.",
+          "Grade": "PK. Lớp/khối (int). VD: 1, 3, 5."
+        }
+      }
+    },
+    "join_hints": [
+      "course_arrange ↔ course: course_arrange.Course_ID = course.Course_ID",
+      "course_arrange ↔ teacher: course_arrange.Teacher_ID = teacher.Teacher_ID"
+    ]
+  },
+  "museum_visit": {
+    "db_description": "Bảo tàng, khách tham quan và lượt ghé thăm.",
+    "tables": {
+      "museum": {
+        "description": "Thông tin bảo tàng.",
+        "columns": {
+          "Museum_ID": "PK. Mã bảo tàng (int).",
+          "Name": "Tên bảo tàng. VD: 'Plaza Museum'.",
+          "Num_of_Staff": "Số nhân viên (int). VD: 62.",
+          "Open_Year": "Năm mở cửa (text). VD: '2000', '2012'."
+        }
+      },
+      "visitor": {
+        "description": "Thông tin khách tham quan.",
+        "columns": {
+          "ID": "PK. Mã khách (int).",
+          "Name": "Tên khách. VD: 'Gonzalo Higuaín'.",
+          "Level_of_membership": "Cấp độ thành viên (int). VD: 1–8.",
+          "Age": "Tuổi (int)."
+        }
+      },
+      "visit": {
+        "description": "Lượt tham quan bảo tàng.",
+        "columns": {
+          "Museum_ID": "PK, FK → museum.Museum_ID. Mã bảo tàng.",
+          "visitor_ID": "PK, FK → visitor.ID. Mã khách (text chứa int).",
+          "Num_of_Ticket": "Số vé mua (int). VD: 20.",
+          "Total_spent": "Tổng chi tiêu (float). VD: 320.14."
+        }
+      }
+    },
+    "join_hints": [
+      "visit ↔ museum: visit.Museum_ID = museum.Museum_ID",
+      "visit ↔ visitor: visit.visitor_ID = visitor.ID"
+    ]
+  },
+  "wta_1": {
+    "db_description": "Tennis nữ WTA: tay vợt, trận đấu và bảng xếp hạng.",
+    "tables": {
+      "players": {
+        "description": "Thông tin tay vợt nữ.",
+        "columns": {
+          "player_id": "PK. Mã tay vợt (int).",
+          "first_name": "Tên. VD: 'Martina', 'Serena'.",
+          "last_name": "Họ. VD: 'Hingis', 'Williams'.",
+          "hand": "Tay thuận. Enum: 'R' = phải, 'L' = trái.",
+          "birth_date": "Ngày sinh (date, format YYYYMMDD). VD: 19800930.",
+          "country_code": "Mã quốc gia 3 ký tự. VD: 'SUI', 'USA', 'CRO'."
+        }
+      },
+      "matches": {
+        "description": "Kết quả trận đấu WTA.",
+        "columns": {
+          "best_of": "Số set tối đa (int). VD: 3.",
+          "draw_size": "Quy mô nhánh đấu (int). VD: 4, 32, 64.",
+          "loser_age": "Tuổi người thua (float).",
+          "loser_entry": "Cách vào giải của người thua. VD: '', 'WC', 'Q'.",
+          "loser_hand": "Tay thuận người thua. Enum: 'R', 'L'.",
+          "loser_ht": "Chiều cao người thua (int, cm).",
+          "loser_id": "FK → players.player_id. Mã tay vợt thua.",
+          "loser_ioc": "Mã quốc gia người thua. VD: 'POL', 'CZE'.",
+          "loser_name": "Tên người thua. VD: 'Agnieszka Radwanska'.",
+          "loser_rank": "Hạng người thua (int).",
+          "loser_rank_points": "Điểm xếp hạng người thua (int).",
+          "loser_seed": "Hạt giống người thua (int).",
+          "match_num": "Số thứ tự trận (int).",
+          "minutes": "Thời lượng trận (int, phút).",
+          "round": "Vòng đấu. VD: 'RR', 'F', 'SF', 'QF', 'R16', 'R32'.",
+          "score": "Tỉ số trận. VD: '6-2 6-4'.",
+          "surface": "Mặt sân. VD: 'Hard', 'Clay', 'Grass'.",
+          "tourney_date": "Ngày giải đấu (date). VD: 20131021.",
+          "tourney_id": "Mã giải đấu (text).",
+          "tourney_level": "Cấp giải. VD: 'W', 'G', 'P', 'I'.",
+          "tourney_name": "Tên giải. VD: 'WTA Championships', 'Australian Open'.",
+          "winner_age": "Tuổi người thắng (float).",
+          "winner_entry": "Cách vào giải của người thắng.",
+          "winner_hand": "Tay thuận người thắng. Enum: 'R', 'L'.",
+          "winner_ht": "Chiều cao người thắng (int, cm).",
+          "winner_id": "FK → players.player_id. Mã tay vợt thắng.",
+          "winner_ioc": "Mã quốc gia người thắng.",
+          "winner_name": "Tên người thắng. VD: 'Serena Williams'.",
+          "winner_rank": "Hạng người thắng (int).",
+          "winner_rank_points": "Điểm xếp hạng người thắng (int).",
+          "winner_seed": "Hạt giống người thắng (int).",
+          "year": "Năm diễn ra (int). VD: 2013."
+        }
+      },
+      "rankings": {
+        "description": "Bảng xếp hạng WTA theo thời gian.",
+        "columns": {
+          "ranking_date": "Ngày xếp hạng (date). VD: 20000101.",
+          "ranking": "Vị trí xếp hạng (int). VD: 1, 3, 28.",
+          "player_id": "FK → players.player_id. Mã tay vợt.",
+          "ranking_points": "Điểm xếp hạng (int).",
+          "tours": "Số giải đã tham gia (int)."
+        }
+      }
+    },
+    "join_hints": [
+      "matches ↔ players (thắng): matches.winner_id = players.player_id",
+      "matches ↔ players (thua): matches.loser_id = players.player_id",
+      "rankings ↔ players: rankings.player_id = players.player_id",
+      "Lưu ý: JOIN players 2 lần (alias) khi cần cả winner và loser"
+    ]
+  },
+  "battle_death": {
+    "db_description": "Trận chiến lịch sử, tàu chiến và thương vong.",
+    "tables": {
+      "battle": {
+        "description": "Thông tin trận chiến.",
+        "columns": {
+          "id": "PK. Mã trận chiến (int).",
+          "name": "Tên trận chiến. VD: 'Battle of Adrianople'.",
+          "date": "Ngày diễn ra (text). VD: '14 April 1205'.",
+          "bulgarian_commander": "Chỉ huy phía Bulgaria. VD: 'Kaloyan'.",
+          "latin_commander": "Chỉ huy phía Latin. VD: 'Baldwin I'.",
+          "result": "Kết quả. VD: 'Bulgarian victory'."
+        }
+      },
+      "ship": {
+        "description": "Tàu chiến bị mất trong trận đánh.",
+        "columns": {
+          "lost_in_battle": "FK → battle.id. Mã trận chiến mất tàu (int).",
+          "id": "PK. Mã tàu (int).",
+          "name": "Tên tàu. VD: 'Lettice', 'Bon Accord'.",
+          "tonnage": "Trọng tải (text). VD: 't'.",
+          "ship_type": "Loại tàu. VD: 'Brig'.",
+          "location": "Vị trí. VD: 'English Channel'.",
+          "disposition_of_ship": "Số phận tàu. VD: 'Captured', 'Scuttled'."
+        }
+      },
+      "death": {
+        "description": "Thương vong do tàu gây ra.",
+        "columns": {
+          "caused_by_ship_id": "FK → ship.id. Mã tàu gây thương vong.",
+          "id": "PK. Mã sự kiện thương vong (int).",
+          "note": "Ghi chú địa điểm. VD: 'Dantewada, Chhattisgarh'.",
+          "killed": "Số người chết (int).",
+          "injured": "Số người bị thương (int)."
+        }
+      }
+    },
+    "join_hints": [
+      "ship ↔ battle: ship.lost_in_battle = battle.id",
+      "death ↔ ship: death.caused_by_ship_id = ship.id"
+    ]
+  },
+  "student_transcripts_tracking": {
+    "db_description": "Quản lý sinh viên, khoa, chương trình học, đăng ký môn, học kỳ và bảng điểm.",
+    "tables": {
+      "Addresses": {
+        "description": "Địa chỉ (dùng cho sinh viên).",
+        "columns": {
+          "address_id": "PK. Mã địa chỉ (int).",
+          "line_1": "Dòng địa chỉ 1.",
+          "line_2": "Dòng địa chỉ 2 (nullable).",
+          "line_3": "Dòng địa chỉ 3 (nullable).",
+          "city": "Thành phố.",
+          "zip_postcode": "Mã bưu chính.",
+          "state_province_county": "Bang/tỉnh.",
+          "country": "Quốc gia.",
+          "other_address_details": "Thông tin khác (nullable)."
+        }
+      },
+      "Departments": {
+        "description": "Khoa/bộ môn.",
+        "columns": {
+          "department_id": "PK. Mã khoa (int).",
+          "department_name": "Tên khoa. VD: 'computer science', 'history'.",
+          "department_description": "Mô tả khoa.",
+          "other_details": "Thông tin khác (nullable)."
+        }
+      },
+      "Degree_Programs": {
+        "description": "Chương trình đào tạo (thuộc khoa).",
+        "columns": {
+          "degree_program_id": "PK. Mã chương trình (int).",
+          "department_id": "FK → Departments.department_id. Mã khoa.",
+          "degree_summary_name": "Tên bằng. VD: 'Master', 'Bachelor'.",
+          "degree_summary_description": "Mô tả chương trình.",
+          "other_details": "Thông tin khác (nullable)."
+        }
+      },
+      "Courses": {
+        "description": "Danh sách môn học.",
+        "columns": {
+          "course_id": "PK. Mã môn học (int).",
+          "course_name": "Tên môn. VD: 'ds', 'math', 'os'.",
+          "course_description": "Mô tả môn.",
+          "other_details": "Thông tin khác (nullable)."
+        }
+      },
+      "Sections": {
+        "description": "Lớp học phần (section) của môn học.",
+        "columns": {
+          "section_id": "PK. Mã lớp học phần (int).",
+          "course_id": "FK → Courses.course_id. Mã môn học.",
+          "section_name": "Tên lớp học phần. VD: 'a', 'b'.",
+          "section_description": "Mô tả.",
+          "other_details": "Thông tin khác (nullable)."
+        }
+      },
+      "Semesters": {
+        "description": "Học kỳ.",
+        "columns": {
+          "semester_id": "PK. Mã học kỳ (int).",
+          "semester_name": "Tên học kỳ. VD: 'spring 2010', 'fall 2010'.",
+          "semester_description": "Mô tả.",
+          "other_details": "Thông tin khác (nullable)."
+        }
+      },
+      "Students": {
+        "description": "Thông tin sinh viên.",
+        "columns": {
+          "student_id": "PK. Mã sinh viên (int).",
+          "current_address_id": "FK → Addresses.address_id. Địa chỉ hiện tại.",
+          "permanent_address_id": "FK → Addresses.address_id. Địa chỉ thường trú.",
+          "first_name": "Tên. VD: 'Timmothy'.",
+          "middle_name": "Tên đệm.",
+          "last_name": "Họ. VD: 'Ward'.",
+          "cell_mobile_number": "Số điện thoại.",
+          "email_address": "Email.",
+          "ssn": "Mã số xã hội.",
+          "date_first_registered": "Ngày nhập học (datetime).",
+          "date_left": "Ngày rời trường (datetime, nullable).",
+          "other_student_details": "Thông tin khác (nullable)."
+        }
+      },
+      "Student_Enrolment": {
+        "description": "Đăng ký chương trình đào tạo của sinh viên theo học kỳ.",
+        "columns": {
+          "student_enrolment_id": "PK. Mã đăng ký (int).",
+          "degree_program_id": "FK → Degree_Programs.degree_program_id.",
+          "semester_id": "FK → Semesters.semester_id.",
+          "student_id": "FK → Students.student_id.",
+          "other_details": "Thông tin khác (nullable)."
+        }
+      },
+      "Student_Enrolment_Courses": {
+        "description": "Môn học mà sinh viên đăng ký trong lần nhập học.",
+        "columns": {
+          "student_course_id": "PK. Mã đăng ký môn (int).",
+          "course_id": "FK → Courses.course_id.",
+          "student_enrolment_id": "FK → Student_Enrolment.student_enrolment_id."
+        }
+      },
+      "Transcripts": {
+        "description": "Bảng điểm.",
+        "columns": {
+          "transcript_id": "PK. Mã bảng điểm (int).",
+          "transcript_date": "Ngày lập bảng điểm (datetime).",
+          "other_details": "Thông tin khác (nullable)."
+        }
+      },
+      "Transcript_Contents": {
+        "description": "Nội dung bảng điểm — liên kết môn đã học với bảng điểm.",
+        "columns": {
+          "student_course_id": "FK → Student_Enrolment_Courses.student_course_id.",
+          "transcript_id": "FK → Transcripts.transcript_id."
+        }
+      }
+    },
+    "join_hints": [
+      "Students ↔ Addresses (hiện tại): Students.current_address_id = Addresses.address_id",
+      "Students ↔ Addresses (thường trú): Students.permanent_address_id = Addresses.address_id",
+      "Student_Enrolment ↔ Students: Student_Enrolment.student_id = Students.student_id",
+      "Student_Enrolment ↔ Degree_Programs: Student_Enrolment.degree_program_id = Degree_Programs.degree_program_id",
+      "Student_Enrolment ↔ Semesters: Student_Enrolment.semester_id = Semesters.semester_id",
+      "Degree_Programs ↔ Departments: Degree_Programs.department_id = Departments.department_id",
+      "Student_Enrolment_Courses ↔ Courses: Student_Enrolment_Courses.course_id = Courses.course_id",
+      "Student_Enrolment_Courses ↔ Student_Enrolment: Student_Enrolment_Courses.student_enrolment_id = Student_Enrolment.student_enrolment_id",
+      "Transcript_Contents ↔ Transcripts: Transcript_Contents.transcript_id = Transcripts.transcript_id",
+      "Transcript_Contents ↔ Student_Enrolment_Courses: Transcript_Contents.student_course_id = Student_Enrolment_Courses.student_course_id",
+      "Sections ↔ Courses: Sections.course_id = Courses.course_id"
+    ]
+  },
+  "tvshow": {
+    "db_description": "Kênh truyền hình, phim hoạt hình và series TV.",
+    "tables": {
+      "TV_Channel": {
+        "description": "Kênh truyền hình.",
+        "columns": {
+          "id": "PK. Mã kênh (text). VD: '700', '701'.",
+          "series_name": "Tên series kênh. VD: 'Sky Radio', 'Sky Music'.",
+          "Country": "Quốc gia phát sóng. VD: 'Italy'.",
+          "Language": "Ngôn ngữ. VD: 'Italian'.",
+          "Content": "Thể loại nội dung. VD: 'music', 'sport'.",
+          "Pixel_aspect_ratio_PAR": "Tỷ lệ khung hình. VD: '4:3', '16:9'.",
+          "Hight_definition_TV": "Hỗ trợ HD? VD: 'yes', 'no'.",
+          "Pay_per_view_PPV": "Có trả phí xem? VD: 'yes', 'no'.",
+          "Package_Option": "Gói dịch vụ. VD: 'Sky Famiglia'."
+        }
+      },
+      "Cartoon": {
+        "description": "Phim hoạt hình phát trên kênh TV.",
+        "columns": {
+          "id": "PK. Mã phim hoạt hình (real).",
+          "Title": "Tên tập phim. VD: 'The Rise of the Blue Beetle!'.",
+          "Directed_by": "Đạo diễn. VD: 'Ben Jones'.",
+          "Written_by": "Biên kịch. VD: 'Michael Jelenic'.",
+          "Original_air_date": "Ngày phát sóng gốc (text). VD: 'November14,2008'.",
+          "Production_code": "Mã sản xuất (real). VD: 101.0.",
+          "Channel": "FK → TV_Channel.id. Mã kênh phát."
+        }
+      },
+      "TV_series": {
+        "description": "Các tập series TV phát trên kênh.",
+        "columns": {
+          "id": "PK. Mã tập (real).",
+          "Episode": "Tên tập. VD: 'A Love of a Lifetime'.",
+          "Air_Date": "Ngày phát sóng (text). VD: 'September 24, 2007'.",
+          "Rating": "Điểm đánh giá (text). VD: '5.8'.",
+          "Share": "Thị phần (real). VD: 9.0.",
+          "18_49_Rating_Share": "Rating nhóm 18-49 tuổi. VD: '3.5/9'.",
+          "Viewers_m": "Lượng người xem (triệu, text). VD: '9.16'.",
+          "Weekly_Rank": "Xếp hạng tuần (real). VD: 43.0.",
+          "Channel": "FK → TV_Channel.id. Mã kênh phát."
+        }
+      }
+    },
+    "join_hints": [
+      "Cartoon ↔ TV_Channel: Cartoon.Channel = TV_Channel.id",
+      "TV_series ↔ TV_Channel: TV_series.Channel = TV_Channel.id"
+    ]
+  },
+  "poker_player": {
+    "db_description": "Người chơi poker và thông tin cá nhân.",
+    "tables": {
+      "people": {
+        "description": "Thông tin cá nhân.",
+        "columns": {
+          "People_ID": "PK. Mã người (int).",
+          "Nationality": "Quốc tịch. VD: 'Russia', 'Bulgaria'.",
+          "Name": "Tên. VD: 'Aleksey Ostapenko'.",
+          "Birth_Date": "Ngày sinh (text). VD: 'May 26, 1986'.",
+          "Height": "Chiều cao (float, cm). VD: 207.0."
+        }
+      },
+      "poker_player": {
+        "description": "Thông tin poker player (liên kết tới people).",
+        "columns": {
+          "Poker_Player_ID": "PK. Mã poker player (int).",
+          "People_ID": "FK → people.People_ID. Mã người.",
+          "Final_Table_Made": "Số lần vào bàn chung kết (float). VD: 42.0.",
+          "Best_Finish": "Vị trí cao nhất đạt được (float). VD: 1.0.",
+          "Money_Rank": "Xếp hạng tiền thưởng (float). VD: 68.0.",
+          "Earnings": "Tổng tiền thắng (float, USD). VD: 476090.0."
+        }
+      }
+    },
+    "join_hints": [
+      "poker_player ↔ people: poker_player.People_ID = people.People_ID"
+    ]
+  },
+  "voter_1": {
+    "db_description": "Cuộc thi bình chọn: thí sinh, phiếu bầu và mã vùng theo bang.",
+    "tables": {
+      "AREA_CODE_STATE": {
+        "description": "Ánh xạ mã vùng điện thoại → bang.",
+        "columns": {
+          "area_code": "PK. Mã vùng điện thoại (int). VD: 201, 202.",
+          "state": "Mã bang 2 ký tự. VD: 'NJ', 'DC', 'CT'."
+        }
+      },
+      "CONTESTANTS": {
+        "description": "Thông tin thí sinh tham gia cuộc thi.",
+        "columns": {
+          "contestant_number": "PK. Số thứ tự thí sinh (int).",
+          "contestant_name": "Tên thí sinh. VD: 'Edwina Burnam'."
+        }
+      },
+      "VOTES": {
+        "description": "Phiếu bầu cho thí sinh.",
+        "columns": {
+          "vote_id": "PK. Mã phiếu bầu (int).",
+          "phone_number": "Số điện thoại người bầu (int).",
+          "state": "FK → AREA_CODE_STATE.state. Mã bang người bầu.",
+          "contestant_number": "FK → CONTESTANTS.contestant_number. Thí sinh được bầu.",
+          "created": "Thời gian bầu (timestamp). VD: '2018-03-09 19:03:21'."
+        }
+      }
+    },
+    "join_hints": [
+      "VOTES ↔ CONTESTANTS: VOTES.contestant_number = CONTESTANTS.contestant_number",
+      "VOTES ↔ AREA_CODE_STATE: VOTES.state = AREA_CODE_STATE.state"
+    ]
+  },
+  "world_1": {
+    "db_description": "Dữ liệu địa lý thế giới: quốc gia, thành phố, ngôn ngữ.",
+    "tables": {
+      "city": {
+        "description": "Thông tin các thành phố trên thế giới.",
+        "columns": {
+          "ID": "PK. Mã thành phố (int, auto-increment).",
+          "Name": "Tên thành phố. VD: 'Kabul', 'Qandahar', 'Ho Chi Minh City'.",
+          "CountryCode": "FK → country.Code. Mã quốc gia chứa thành phố.",
+          "District": "Tỉnh/bang/quận hành chính. VD: 'Kabol', 'California'.",
+          "Population": "Dân số thành phố (int). VD: 1780000."
+        }
+      },
+      "country": {
+        "description": "Thông tin quốc gia và vùng lãnh thổ.",
+        "columns": {
+          "Code": "PK. Mã quốc gia 3 ký tự (ISO 3166). VD: 'AFG', 'VNM'.",
+          "Name": "Tên quốc gia bằng tiếng Anh. VD: 'Afghanistan', 'Vietnam'.",
+          "Continent": "Châu lục. Enum: 'Asia','Europe','North America','Africa','Oceania','Antarctica','South America'.",
+          "Region": "Khu vực địa lý chi tiết hơn châu lục. VD: 'Southeast Asia', 'Caribbean'.",
+          "SurfaceArea": "Diện tích (km², float). VD: 652090.0.",
+          "IndepYear": "Năm độc lập (int, nullable). VD: 1945. NULL nếu chưa độc lập.",
+          "Population": "Dân số quốc gia (int). VD: 22720000.",
+          "LifeExpectancy": "Tuổi thọ trung bình (float, nullable). VD: 75.2.",
+          "GNP": "Tổng sản phẩm quốc dân hiện tại (float, nullable). Đơn vị: triệu USD.",
+          "GNPOld": "GNP kỳ trước (float, nullable). Dùng để so sánh tăng trưởng.",
+          "LocalName": "Tên quốc gia bằng ngôn ngữ bản địa. VD: 'Việt Nam'.",
+          "GovernmentForm": "Hình thức chính phủ. VD: 'Republic', 'Constitutional Monarchy'.",
+          "HeadOfState": "Tên nguyên thủ quốc gia. VD: 'Mohammad Omar'.",
+          "Capital": "FK → city.ID. ID thành phố thủ đô (int, nullable). JOIN city ON country.Capital = city.ID để lấy tên thủ đô.",
+          "Code2": "Mã quốc gia 2 ký tự (ISO). VD: 'AF', 'VN'."
+        }
+      },
+      "countrylanguage": {
+        "description": "Ngôn ngữ được sử dụng tại mỗi quốc gia và tỷ lệ người dùng.",
+        "columns": {
+          "CountryCode": "PK, FK → country.Code. Mã quốc gia.",
+          "Language": "PK. Tên ngôn ngữ. VD: 'Vietnamese', 'English', 'Dutch'.",
+          "IsOfficial": "Ngôn ngữ chính thức? Enum: 'T' = có, 'F' = không.",
+          "Percentage": "% dân số sử dụng ngôn ngữ này (float). VD: 96.0."
+        }
+      }
+    },
+    "join_hints": [
+      "city ↔ country: city.CountryCode = country.Code",
+      "countrylanguage ↔ country: countrylanguage.CountryCode = country.Code",
+      "Tìm tên thủ đô: JOIN city ON country.Capital = city.ID"
+    ]
+  },
+  "orchestra": {
+    "db_description": "Nhạc trưởng, dàn nhạc, buổi biểu diễn và show.",
+    "tables": {
+      "conductor": {
+        "description": "Thông tin nhạc trưởng.",
+        "columns": {
+          "Conductor_ID": "PK. Mã nhạc trưởng (int).",
+          "Name": "Tên. VD: 'Antal Doráti', 'Igor Stravinsky'.",
+          "Age": "Tuổi (int).",
+          "Nationality": "Quốc tịch. VD: 'USA', 'UK'.",
+          "Year_of_Work": "Số năm kinh nghiệm (int). VD: 10."
+        }
+      },
+      "orchestra": {
+        "description": "Thông tin dàn nhạc.",
+        "columns": {
+          "Orchestra_ID": "PK. Mã dàn nhạc (int).",
+          "Orchestra": "Tên dàn nhạc. VD: 'London Symphony Orchestra'.",
+          "Conductor_ID": "FK → conductor.Conductor_ID. Mã nhạc trưởng.",
+          "Record_Company": "Hãng thu âm. VD: 'Mercury Records', 'Philips'.",
+          "Year_of_Founded": "Năm thành lập (real). VD: 2003.0.",
+          "Major_Record_Format": "Định dạng thu chính. VD: 'CD', 'CD / LP'."
+        }
+      },
+      "performance": {
+        "description": "Buổi biểu diễn của dàn nhạc.",
+        "columns": {
+          "Performance_ID": "PK. Mã buổi diễn (int).",
+          "Orchestra_ID": "FK → orchestra.Orchestra_ID. Mã dàn nhạc.",
+          "Type": "Loại buổi diễn. VD: 'Auditions 1', 'Auditions 2'.",
+          "Date": "Ngày diễn (text). VD: '9 June'.",
+          "Official_ratings_(millions)": "Rating chính thức (triệu, real). VD: 5.2.",
+          "Weekly_rank": "Xếp hạng tuần (text). VD: '12'.",
+          "Share": "Thị phần (text). VD: '22.7%'."
+        }
+      },
+      "show": {
+        "description": "Show diễn cụ thể trong buổi biểu diễn.",
+        "columns": {
+          "Show_ID": "PK. Mã show (int).",
+          "Performance_ID": "FK → performance.Performance_ID. Mã buổi diễn.",
+          "If_first_show": "Tên địa điểm show (text). VD: 'Glebe Park'. Lưu ý: tên cột gây hiểu nhầm, thực tế chứa tên venue.",
+          "Result": "Kết quả. Enum: 'T', 'F'.",
+          "Attendance": "Lượng khán giả (real). VD: 1026.0."
+        }
+      }
+    },
+    "join_hints": [
+      "orchestra ↔ conductor: orchestra.Conductor_ID = conductor.Conductor_ID",
+      "performance ↔ orchestra: performance.Orchestra_ID = orchestra.Orchestra_ID",
+      "show ↔ performance: show.Performance_ID = performance.Performance_ID"
+    ]
+  },
+  "network_1": {
+    "db_description": "Mạng xã hội học sinh trung học: bạn bè và thích.",
+    "tables": {
+      "Highschooler": {
+        "description": "Học sinh trung học.",
+        "columns": {
+          "ID": "PK. Mã học sinh (int).",
+          "name": "Tên học sinh. VD: 'Jordan', 'Gabriel', 'Tiffany'.",
+          "grade": "Lớp/khối (int). VD: 9, 10, 11, 12."
+        }
+      },
+      "Friend": {
+        "description": "Quan hệ bạn bè giữa hai học sinh (đối xứng).",
+        "columns": {
+          "student_id": "PK, FK → Highschooler.ID. Mã học sinh.",
+          "friend_id": "PK, FK → Highschooler.ID. Mã bạn."
+        }
+      },
+      "Likes": {
+        "description": "Quan hệ thích (một chiều) giữa hai học sinh.",
+        "columns": {
+          "student_id": "PK, FK → Highschooler.ID. Mã học sinh (người thích).",
+          "liked_id": "PK, FK → Highschooler.ID. Mã học sinh (được thích)."
+        }
+      }
+    },
+    "join_hints": [
+      "Friend ↔ Highschooler: Friend.student_id = Highschooler.ID hoặc Friend.friend_id = Highschooler.ID",
+      "Likes ↔ Highschooler: Likes.student_id = Highschooler.ID hoặc Likes.liked_id = Highschooler.ID",
+      "Lưu ý: JOIN Highschooler 2 lần (alias) khi cần cả 2 phía quan hệ"
+    ]
+  },
+  "dog_kennels": {
+    "db_description": "Trại nuôi chó: giống, kích cỡ, chủ sở hữu, chuyên viên thú y và điều trị.",
+    "tables": {
+      "Breeds": {
+        "description": "Danh sách giống chó.",
+        "columns": {
+          "breed_code": "PK. Mã giống (varchar 10). VD: 'ESK', 'HUS', 'BUL'.",
+          "breed_name": "Tên giống. VD: 'Eskimo', 'Husky', 'Bulldog'."
+        }
+      },
+      "Sizes": {
+        "description": "Danh sách kích cỡ chó.",
+        "columns": {
+          "size_code": "PK. Mã kích cỡ (varchar 10). VD: 'SML', 'MED', 'LGE'.",
+          "size_description": "Mô tả. VD: 'Small', 'Medium', 'Large'."
+        }
+      },
+      "Owners": {
+        "description": "Chủ sở hữu chó.",
+        "columns": {
+          "owner_id": "PK. Mã chủ (int).",
+          "first_name": "Tên. VD: 'Nora'.",
+          "last_name": "Họ. VD: 'Haley'.",
+          "street": "Địa chỉ đường.",
+          "city": "Thành phố.",
+          "state": "Bang. VD: 'Wisconsin'.",
+          "zip_code": "Mã bưu chính.",
+          "email_address": "Email.",
+          "home_phone": "SĐT nhà.",
+          "cell_number": "SĐT di động."
+        }
+      },
+      "Dogs": {
+        "description": "Thông tin chó.",
+        "columns": {
+          "dog_id": "PK. Mã chó (int).",
+          "owner_id": "FK → Owners.owner_id. Mã chủ sở hữu.",
+          "abandoned_yn": "Bị bỏ rơi? Enum: '1' = có, '0' = không.",
+          "breed_code": "FK → Breeds.breed_code. Mã giống.",
+          "size_code": "FK → Sizes.size_code. Mã kích cỡ.",
+          "name": "Tên chó. VD: 'Kacey', 'Hipolito'.",
+          "age": "Tuổi chó (varchar). VD: '6'.",
+          "date_of_birth": "Ngày sinh (datetime).",
+          "gender": "Giới tính. VD: '1', '0'.",
+          "weight": "Cân nặng (varchar). VD: '7.57'.",
+          "date_arrived": "Ngày đến trại (datetime).",
+          "date_adopted": "Ngày được nhận nuôi (datetime).",
+          "date_departed": "Ngày rời trại (datetime)."
+        }
+      },
+      "Professionals": {
+        "description": "Chuyên viên thú y/nhân viên trại.",
+        "columns": {
+          "professional_id": "PK. Mã chuyên viên (int).",
+          "role_code": "Vai trò. VD: 'Employee', 'Veterinarian'.",
+          "first_name": "Tên.",
+          "last_name": "Họ.",
+          "street": "Địa chỉ đường.",
+          "city": "Thành phố.",
+          "state": "Bang.",
+          "zip_code": "Mã bưu chính.",
+          "email_address": "Email.",
+          "home_phone": "SĐT nhà.",
+          "cell_number": "SĐT di động."
+        }
+      },
+      "Treatment_Types": {
+        "description": "Danh mục loại điều trị.",
+        "columns": {
+          "treatment_type_code": "PK. Mã loại điều trị. VD: 'EXAM', 'VAC', 'WALK'.",
+          "treatment_type_description": "Mô tả. VD: 'Physical examination', 'Vaccination', 'Take for a Walk'."
+        }
+      },
+      "Charges": {
+        "description": "Bảng phí dịch vụ.",
+        "columns": {
+          "charge_id": "PK. Mã phí (int).",
+          "charge_type": "Loại phí. VD: 'Daily Accommodation', 'Drugs', 'Health Check'.",
+          "charge_amount": "Số tiền phí (decimal). VD: 98, 322."
+        }
+      },
+      "Treatments": {
+        "description": "Lịch sử điều trị chó.",
+        "columns": {
+          "treatment_id": "PK. Mã điều trị (int).",
+          "dog_id": "FK → Dogs.dog_id. Mã chó.",
+          "professional_id": "FK → Professionals.professional_id. Mã chuyên viên.",
+          "treatment_type_code": "FK → Treatment_Types.treatment_type_code. Mã loại điều trị.",
+          "date_of_treatment": "Ngày điều trị (datetime).",
+          "cost_of_treatment": "Chi phí điều trị (decimal). VD: 567."
+        }
+      }
+    },
+    "join_hints": [
+      "Dogs ↔ Breeds: Dogs.breed_code = Breeds.breed_code",
+      "Dogs ↔ Sizes: Dogs.size_code = Sizes.size_code",
+      "Dogs ↔ Owners: Dogs.owner_id = Owners.owner_id",
+      "Treatments ↔ Dogs: Treatments.dog_id = Dogs.dog_id",
+      "Treatments ↔ Professionals: Treatments.professional_id = Professionals.professional_id",
+      "Treatments ↔ Treatment_Types: Treatments.treatment_type_code = Treatment_Types.treatment_type_code"
+    ]
+  },
+  "singer": {
+    "db_description": "Ca sĩ và bài hát (khác với concert_singer — database này tập trung vào doanh thu bán hàng).",
+    "tables": {
+      "singer": {
+        "description": "Thông tin ca sĩ.",
+        "columns": {
+          "Singer_ID": "PK. Mã ca sĩ (int).",
+          "Name": "Tên ca sĩ. VD: 'Liliane Bettencourt', 'Christy Walton'.",
+          "Birth_Year": "Năm sinh (real). VD: 1944.0.",
+          "Net_Worth_Millions": "Giá trị tài sản ròng (triệu USD, real). VD: 30.0.",
+          "Citizenship": "Quốc tịch. VD: 'France', 'United States'."
+        }
+      },
+      "song": {
+        "description": "Bài hát của ca sĩ.",
+        "columns": {
+          "Song_ID": "PK. Mã bài hát (int).",
+          "Title": "Tên bài hát. VD: 'Do They Know It's Christmas'.",
+          "Singer_ID": "FK → singer.Singer_ID. Mã ca sĩ trình bày.",
+          "Sales": "Doanh số bán (real). VD: 1094000.0.",
+          "Highest_Position": "Vị trí cao nhất trên bảng xếp hạng (real). VD: 1.0."
+        }
+      }
+    },
+    "join_hints": [
+      "song ↔ singer: song.Singer_ID = singer.Singer_ID"
+    ]
+  },
+  "real_estate_properties": {
+    "db_description": "Bất động sản: loại tài sản, tiện ích và giao dịch mua bán.",
+    "tables": {
+      "Ref_Property_Types": {
+        "description": "Danh mục loại bất động sản.",
+        "columns": {
+          "property_type_code": "PK. Mã loại (varchar 20). VD: 'House', 'Apartment', 'Field'.",
+          "property_type_description": "Mô tả. VD: 'House, Bungalow, etc.', 'Apartment, Flat, Condo, etc.'."
+        }
+      },
+      "Ref_Feature_Types": {
+        "description": "Danh mục loại tiện ích.",
+        "columns": {
+          "feature_type_code": "PK. Mã loại tiện ích (varchar 20). VD: 'Amenity', 'Security'.",
+          "feature_type_name": "Tên loại. VD: 'Amenity, eg Pool.', 'Security, eg Burglar Alarm.'."
+        }
+      },
+      "Other_Available_Features": {
+        "description": "Danh sách tiện ích có sẵn.",
+        "columns": {
+          "feature_id": "PK. Mã tiện ích (int).",
+          "feature_type_code": "FK → Ref_Feature_Types.feature_type_code. Mã loại tiện ích.",
+          "feature_name": "Tên tiện ích. VD: 'AirCon', 'Pool', 'BurglarAlarm'.",
+          "feature_description": "Mô tả. VD: 'Air Conditioning.', 'Swimming Pool.'."
+        }
+      },
+      "Properties": {
+        "description": "Thông tin bất động sản.",
+        "columns": {
+          "property_id": "PK. Mã tài sản (int).",
+          "property_type_code": "FK → Ref_Property_Types.property_type_code. Loại tài sản.",
+          "date_on_market": "Ngày đưa lên thị trường (datetime).",
+          "date_sold": "Ngày bán (datetime).",
+          "property_name": "Tên tài sản. VD: 'park', 'the cole'.",
+          "property_address": "Địa chỉ.",
+          "room_count": "Số phòng (int).",
+          "vendor_requested_price": "Giá người bán yêu cầu (decimal).",
+          "buyer_offered_price": "Giá người mua đề nghị (decimal).",
+          "agreed_selling_price": "Giá bán thỏa thuận (decimal).",
+          "apt_feature_1": "Đặc điểm căn hộ 1 (nullable).",
+          "apt_feature_2": "Đặc điểm căn hộ 2 (nullable).",
+          "apt_feature_3": "Đặc điểm căn hộ 3 (nullable).",
+          "fld_feature_1": "Đặc điểm đất 1 (nullable).",
+          "fld_feature_2": "Đặc điểm đất 2 (nullable).",
+          "fld_feature_3": "Đặc điểm đất 3 (nullable).",
+          "hse_feature_1": "Đặc điểm nhà 1 (nullable).",
+          "hse_feature_2": "Đặc điểm nhà 2 (nullable).",
+          "hse_feature_3": "Đặc điểm nhà 3 (nullable).",
+          "oth_feature_1": "Đặc điểm khác 1 (nullable).",
+          "oth_feature_2": "Đặc điểm khác 2 (nullable).",
+          "oth_feature_3": "Đặc điểm khác 3 (nullable).",
+          "shp_feature_1": "Đặc điểm cửa hàng 1 (nullable).",
+          "shp_feature_2": "Đặc điểm cửa hàng 2 (nullable).",
+          "shp_feature_3": "Đặc điểm cửa hàng 3 (nullable).",
+          "other_property_details": "Thông tin khác (nullable)."
+        }
+      },
+      "Other_Property_Features": {
+        "description": "Bảng liên kết bất động sản với tiện ích (N-N).",
+        "columns": {
+          "property_id": "FK → Properties.property_id. Mã tài sản.",
+          "feature_id": "FK → Other_Available_Features.feature_id. Mã tiện ích.",
+          "property_feature_description": "Mô tả tiện ích của tài sản cụ thể."
+        }
+      }
+    },
+    "join_hints": [
+      "Properties ↔ Ref_Property_Types: Properties.property_type_code = Ref_Property_Types.property_type_code",
+      "Other_Available_Features ↔ Ref_Feature_Types: Other_Available_Features.feature_type_code = Ref_Feature_Types.feature_type_code",
+      "Other_Property_Features ↔ Properties: Other_Property_Features.property_id = Properties.property_id",
+      "Other_Property_Features ↔ Other_Available_Features: Other_Property_Features.feature_id = Other_Available_Features.feature_id"
+    ]
+  }
+}
